@@ -1,10 +1,21 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import pickle
 import numpy as np
+import os
 from collections import Counter
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Kelas input untuk data yang akan diprediksi
 class CropInput(BaseModel):
@@ -18,32 +29,28 @@ class CropInput(BaseModel):
 
 # Kelas output untuk hasil prediksi
 class ModelOutput(BaseModel):
-    predicted_label: str
-    recommendations: str
+    model1_output: str
+    model2_recommendation: str
 
 # Memuat model-model yang sudah dilatih
-with open("KNN_model.pkl", "rb") as file:
-    knn_model = pickle.load(file)
+def load_models():
+    models = {}
+    model_names = ["KNN", "DT", "RFC", "GBC", "XGB", "SVM", "model2"]
+    for name in model_names:
+        model_path = os.path.join("C:\\Users\\ACER\\OneDrive - mail.unnes.ac.id\\katalis\\app", f"{name}_model.pkl")
+        print(f"Trying to load model from {model_path}")  # Debug: Print model path
+        if os.path.isfile(model_path):
+            with open(model_path, "rb") as file:
+                models[name] = pickle.load(file)
+        else:
+            print(f"{model_path} not found!")  # Debug: Print if model not found
+    return models
 
-with open("DT_model.pkl", "rb") as file:
-    dt_model = pickle.load(file)
+# Load models
+models = load_models()
+print("Loaded models:", models)  # Debug: Print loaded models
 
-with open("RFC_model.pkl", "rb") as file:
-    rfc_model = pickle.load(file)
-
-with open("GBC_model.pkl", "rb") as file:
-    gbc_model = pickle.load(file)
-
-with open("XGB_model.pkl", "rb") as file:
-    xgb_model = pickle.load(file)
-
-with open("SVM_model.pkl", "rb") as file:
-    svm_model = pickle.load(file)
-
-with open("model2.pkl", "rb") as file:
-    model2 = pickle.load(file)
-
-# Akurasi dari masing-masing model (disesuaikan dengan nilai sebenarnya dari model Anda)
+# Akurasi dari masing-masing model
 model_accuracies = {
     "KNN": 0.85,
     "DT": 0.78,
@@ -55,66 +62,39 @@ model_accuracies = {
 
 # Fungsi untuk ensemble voting
 def ensemble_voting(predictions_dict, accuracies_dict):
-    final_predictions = []
-    for i in range(len(next(iter(predictions_dict.values())))):  # Panjang dari data uji
-        current_predictions = [pred[i] for pred in predictions_dict.values()]
-        prediction_counter = Counter(current_predictions)
-        most_common_prediction, count = prediction_counter.most_common(1)[0]
+    current_predictions = [pred for pred in predictions_dict.values()]
+    prediction_counter = Counter(current_predictions)
 
-        if count > 4:
-            final_predictions.append(most_common_prediction)
-        elif count == 3 and len(prediction_counter) == 3:
-            top_two_predictions = prediction_counter.most_common(2)
-            best_prediction = max(top_two_predictions, key=lambda x: accuracies_dict[x[0]])
-            final_predictions.append(best_prediction[0])
-        elif count == 2 and len(prediction_counter) == 4:
-            top_three_predictions = prediction_counter.most_common(3)
-            best_prediction = max(top_three_predictions, key=lambda x: accuracies_dict[x[0]])
-            final_predictions.append(best_prediction[0])
-        else:
-            final_predictions.append(most_common_prediction)
-
-    return final_predictions
+    # Jika ada mayoritas jelas
+    if prediction_counter.most_common()[0][1] > len(predictions_dict) / 2:
+        return prediction_counter.most_common()[0][0]
+    else:
+        best_prediction = max(prediction_counter.most_common(), key=lambda x: accuracies_dict[x[0]])
+        return best_prediction[0]
 
 # Fungsi untuk mendapatkan rekomendasi
-def get_recommendation(label, N, P, K, Temperature, Humidity, ph, Rainfall):
-    plant_ranges = {
-        'rice': {
-            'N': (50, 100),
-            'P': (30, 60),
-            'K': (50, 90),
-            'Temperature': (20, 30),
-            'Humidity': (50, 90),
-            'ph': (5.5, 7.0),
-            'Rainfall': (150, 300)
-        },
-        'maize': {
-            'N': (40, 90),
-            'P': (20, 50),
-            'K': (40, 80),
-            'Temperature': (18, 35),
-            'Humidity': (40, 80),
-            'ph': (5.5, 6.8),
-            'Rainfall': (100, 250)
-        },
-        # Tambahkan lebih banyak tanaman di sini...
+def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall):
+    average_values = {
+        'N': 70,
+        'P': 45,
+        'K': 70,
+        'Temperature': 25,
+        'Humidity': 70,
+        'ph': 6.2,
+        'Rainfall': 200
     }
 
-    if label not in plant_ranges:
-        return f"Tanaman '{label}' tidak ditemukan dalam database."
-
-    ranges = plant_ranges[label]
     recommendation = []
 
     for param, pred_value in zip(['N', 'P', 'K', 'Temperature', 'Humidity', 'ph', 'Rainfall'],
                                  [N, P, K, Temperature, Humidity, ph, Rainfall]):
-        min_val, max_val = ranges[param]
-        if pred_value < min_val:
-            recommendation.append(f"{param} kekurangan (prediksi: {pred_value:.2f}), perlu ditingkatkan.")
-        elif pred_value > max_val:
-            recommendation.append(f"{param} berlebih (prediksi: {pred_value:.2f}), perlu dikurangi.")
+        avg_value = average_values[param]
+        if pred_value < avg_value:
+            recommendation.append(f"{param} deficient (prediction: {pred_value:.2f}), needs to be increased.")
+        elif pred_value > avg_value:
+            recommendation.append(f"{param} excess (prediction: {pred_value:.2f}), needs to be reduced.")
         else:
-            recommendation.append(f"{param} sesuai (prediksi: {pred_value:.2f}).")
+            recommendation.append(f"{param} adequate (prediction: {pred_value:.2f}).")
 
     return "\n".join(recommendation)
 
@@ -126,37 +106,53 @@ def read_root():
 # Endpoint POST untuk memprediksi
 @app.post("/predict", response_model=ModelOutput)
 async def predict_crop(input_data: CropInput):
-    # Mengambil data dari input
-    input_features = np.array([[input_data.N, input_data.P, input_data.K,
-                                input_data.Temperature, input_data.Humidity,
-                                input_data.ph, input_data.Rainfall]])
+    try:
+        # Ambil data dari input
+        input_features = np.array([[input_data.N, input_data.P, input_data.K,
+                                    input_data.Temperature, input_data.Humidity,
+                                    input_data.ph, input_data.Rainfall]])
 
-    # Prediksi dengan masing-masing model di Model 1
-    predictions_dict = {
-        "KNN": knn_model.predict(input_features),
-        "DT": dt_model.predict(input_features),
-        "RFC": rfc_model.predict(input_features),
-        "GBC": gbc_model.predict(input_features),
-        "XGB": xgb_model.predict(input_features),
-        "SVM": svm_model.predict(input_features)
-    }
+        # Prediksi dengan masing-masing model di Model 1
+        predictions_dict = {
+            "KNN": models["KNN"].predict(input_features)[0],
+            "DT": models["DT"].predict(input_features)[0],
+            "RFC": models["RFC"].predict(input_features)[0],
+            "GBC": models["GBC"].predict(input_features)[0],
+            "XGB": models["XGB"].predict(input_features)[0],
+            "SVM": models["SVM"].predict(input_features)[0]
+        }
 
-    # Melakukan ensemble voting
-    final_prediction = ensemble_voting(predictions_dict, model_accuracies)[0]
+        print("Predictions from models:", predictions_dict)  # Debug: Print model predictions
 
-    # Menggunakan hasil dari Model 1 sebagai input untuk Model 2
-    prediction_for_model2 = input_features
+        # Melakukan ensemble voting
+        final_prediction = ensemble_voting(predictions_dict, model_accuracies)
 
-    # Prediksi dengan Model 2
-    recommendations = model2.predict(prediction_for_model2)
+        # Menggunakan hasil dari Model 1 sebagai input untuk Model 2
+        prediction_for_model2 = np.array([[final_prediction]])  # Ensure correct shape for Model 2
 
-    # Mendapatkan rekomendasi berdasarkan output
-    recommendation_text = get_recommendation(final_prediction, input_data.N, input_data.P,
-                                             input_data.K, input_data.Temperature, 
-                                             input_data.Humidity, input_data.ph, 
-                                             input_data.Rainfall)
+        # Prediksi dengan Model 2
+        model2 = models["model2"]
+        model2_recommendation = model2.predict(prediction_for_model2)[0]
 
-    return ModelOutput(predicted_label=final_prediction, recommendations=recommendation_text)
+        # Mendapatkan rekomendasi berdasarkan output
+        recommendation_text = get_recommendation(input_data.N, input_data.P,
+                                                 input_data.K, input_data.Temperature, 
+                                                 input_data.Humidity, input_data.ph, 
+                                                 input_data.Rainfall)
+
+        # Debug: Print final outputs
+        print(f"Final prediction from Model 1: {final_prediction}")
+        print(f"Recommendation from Model 2: {model2_recommendation}")
+
+        # Return the updated model output structure
+        return ModelOutput(
+            model1_output=str(final_prediction), 
+            model2_recommendation=model2_recommendation
+        )
+
+    except Exception as e:
+        print(f"Error: {str(e)}")  # Log the error message for debugging
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 # Menjalankan aplikasi
 if __name__ == "__main__":

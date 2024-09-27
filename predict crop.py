@@ -41,7 +41,6 @@ x_scaled = scaler.fit_transform(x)
 
 # Hierarchical Clustering
 hc = AgglomerativeClustering(n_clusters=4, metric='euclidean', linkage='ward')
-
 clusters = hc.fit_predict(x_scaled)
 
 # Modular function to save model
@@ -132,13 +131,6 @@ for model_name, model in models.items():
     # Plot confusion matrix
     plot_confusion_matrix(conf_matrix, model_name)
 
-    # Store results for comparison
-    cv_results[model_name] = {
-        "mean_accuracy": mean_accuracy,
-        "std_dev": std_dev,
-        "confusion_matrix": conf_matrix
-    }
-
     # Train the model on the full training set and predict on the test set
     model.fit(x_train, y_train)
     y_test_pred = model.predict(x_test)
@@ -175,31 +167,29 @@ for model_name, model in models.items():
     # Save the model
     save_model(model, model_name)
 
-# Voting mechanism to ensemble the predictions
+from collections import Counter
+
 def ensemble_voting(predictions_dict, accuracies_dict):
     final_predictions = []
-    for i in range(len(x_test)):
+    for i in range(len(next(iter(predictions_dict.values())))):  # Length of test data
         current_predictions = [pred[i] for pred in predictions_dict.values()]
         prediction_counter = Counter(current_predictions)
-        most_common_prediction, count = prediction_counter.most_common(1)[0]
-
-        if count > 4:
-            final_predictions.append(most_common_prediction)
-        elif count == 3 and len(prediction_counter) == 3:
-            top_two_predictions = prediction_counter.most_common(2)
-            best_prediction = max(top_two_predictions, key=lambda x: accuracies_dict[x[0]])
-            final_predictions.append(best_prediction[0])
-        elif count == 2 and len(prediction_counter) == 4:
-            top_three_predictions = prediction_counter.most_common(3)
-            best_prediction = max(top_three_predictions, key=lambda x: accuracies_dict[x[0]])
-            final_predictions.append(best_prediction[0])
+        
+        # Get the most common predictions and their counts
+        most_common_predictions = prediction_counter.most_common()
+        
+        # If there's a clear majority, return that
+        if most_common_predictions[0][1] > len(predictions_dict) / 2:
+            final_predictions.append(most_common_predictions[0][0])
         else:
-            final_predictions.append(most_common_prediction)
+            # If no clear majority, consider accuracy
+            best_prediction = max(most_common_predictions, key=lambda x: accuracies_dict[x[0]])
+            final_predictions.append(best_prediction[0])
 
     return final_predictions
 
 # Run ensemble voting and decode predictions
-final_predictions = ensemble_voting(model_predictions, model_accuracies)
+final_predictions = ensemble_voting(model_predictions, model_accuracies)  # Fixed the call here
 final_predictions_decoded = label_encoder.inverse_transform(final_predictions)
 
 # Compare with actual y_test values (decoded)
@@ -218,6 +208,7 @@ with open('C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/ensemble_output.pkl
     pickle.dump(final_predictions_decoded, output_file)
 
 print("Ensemble model output has been saved.")
+
 
 # Store the evaluation metrics for each model
 model_metrics = {
@@ -242,39 +233,26 @@ for model_name in models.keys():
     recall = recall_score(y_test_decoded, model_predictions_decoded, average='weighted')
     f1 = f1_score(y_test_decoded, model_predictions_decoded, average='weighted')
 
-    # ROC AUC score
+    # ROC AUC (assuming y_test is encoded)
     if hasattr(models[model_name], "predict_proba"):
         y_proba = models[model_name].predict_proba(x_test)
         roc_auc = roc_auc_score(y_test, y_proba, multi_class="ovr", average='weighted')
     else:
         roc_auc = None
 
-    # Append metrics to the list
+    # Append metrics
     model_metrics["Model"].append(model_name)
     model_metrics["Precision"].append(precision)
     model_metrics["Accuracy"].append(accuracy)
     model_metrics["Recall"].append(recall)
     model_metrics["F1 Score"].append(f1)
-    if roc_auc is not None:
-        model_metrics["ROC AUC"].append(roc_auc)
-    else:
-        model_metrics["ROC AUC"].append(0)  # For models that don't support ROC AUC
+    model_metrics["ROC AUC"].append(roc_auc)
 
-
-# Convert the dictionary to a DataFrame for easy plotting
+# Convert to DataFrame for easier output
 metrics_df = pd.DataFrame(model_metrics)
 
-# Melt the dataframe for easier plotting (long format)
-metrics_melted = metrics_df.melt(id_vars='Model', var_name='Metric', value_name='Score')
+# Save metrics to CSV
+metrics_filename = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/model_metrics.csv'
+metrics_df.to_csv(metrics_filename, index=False)
 
-# Plot the metrics using seaborn
-plt.figure(figsize=(10, 6))
-sns.barplot(x='Model', y='Score', hue='Metric', data=metrics_melted)
-plt.title('Model Performance Metrics')
-plt.ylabel('Score')
-plt.ylim(0, 1)  # Scores between 0 and 1
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')  # Place legend outside the plot
-plt.tight_layout()
-
-# Show the plot
-plt.show()
+print(f"Model metrics have been saved to {metrics_filename}.")

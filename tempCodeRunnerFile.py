@@ -9,13 +9,16 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split, RandomizedSearchCV, cross_val_score
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc, roc_auc_score
+from sklearn.preprocessing import label_binarize
+
 
 # Constants
 DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/Crop_recommendation.csv'
 MODEL_FILE = 'xgb_model.pkl'
 SCALER_FILE = 'scaler.pkl'
+LABEL_ENCODER_FILE = 'label_encoder.pkl'
 
 def load_data(dataset_path):
     """Load dataset from a specified path."""
@@ -27,9 +30,12 @@ def load_data(dataset_path):
 
 def preprocess_data(crop_data):
     """Preprocess the crop data: imputing, encoding, and scaling."""
-    # Impute missing values
-    imputer = SimpleImputer(strategy='mean')
-    x_imputed = imputer.fit_transform(crop_data.drop(['label'], axis=1))
+    # Check for missing values
+    if crop_data.isnull().sum().any():
+        imputer = SimpleImputer(strategy='mean')
+        x_imputed = imputer.fit_transform(crop_data.drop(['label'], axis=1))
+    else:
+        x_imputed = crop_data.drop(['label'], axis=1).values
 
     # Encode labels
     label_encoder = LabelEncoder()
@@ -51,7 +57,8 @@ def tune_hyperparameters(pipeline, X_train, y_train):
         'classifier__n_estimators': [100, 200, 300],
         'classifier__max_depth': [3, 6, 9, 12],
         'classifier__learning_rate': [0.01, 0.1, 0.2],
-        'classifier__subsample': [0.5, 0.75, 1.0]
+        'classifier__subsample': [0.5, 0.75, 1.0],
+        'classifier__colsample_bytree': [0.3, 0.5, 0.7]
     }
     
     random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, scoring='accuracy', random_state=42)
@@ -65,25 +72,11 @@ def evaluate_model(model, X, y, label_encoder):
     print("Confusion Matrix:\n", confusion_matrix(y, y_pred))
     print("Classification Report:\n", classification_report(y, y_pred))
 
-    # Calculate ROC curve and AUC
+    # Calculate ROC curve and AUC for multi-class classification (macro-average)
     y_prob = model.predict_proba(X)
-    n_classes = len(label_encoder.classes_)
-
-    # Plot ROC curve for each class
-    plt.figure()
-    for i in range(n_classes):
-        fpr, tpr, _ = roc_curve(y == i, y_prob[:, i])
-        roc_auc = auc(fpr, tpr)
-        plt.plot(fpr, tpr, label=f'Class {label_encoder.classes_[i]} (AUC = {roc_auc:.2f})')
-
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
-    plt.legend(loc='lower right')
-    plt.show()
+    y_bin = label_binarize(y, classes=np.arange(len(label_encoder.classes_)))
+    roc_auc = roc_auc_score(y_bin, y_prob, average='macro')
+    print(f"Macro-Average AUC: {roc_auc:.2f}")
 
     # Plot confusion matrix
     cm = confusion_matrix(y, y_pred)
@@ -96,31 +89,16 @@ def evaluate_model(model, X, y, label_encoder):
     plt.title('Confusion Matrix')
     plt.show()
 
-def save_model_and_scaler(model, scaler):
-    """Save the trained model and scaler to disk."""
+def save_model_and_scaler(model, scaler, label_encoder):
+    """Save the trained model, scaler, and label encoder to disk."""
     with open(MODEL_FILE, 'wb') as model_file:
         pickle.dump(model, model_file)
 
     with open(SCALER_FILE, 'wb') as scaler_file:
         pickle.dump(scaler, scaler_file)
-
-def determine_color(value, mean_value, direction):
-    """Determine color based on parameter value and its mean."""
-    threshold = mean_value * 0.2  # 20% of the mean
-    if direction == "left":  # For deficiency
-        if value < (mean_value - threshold):
-            return "Red"  # Severe deficiency
-        elif value < mean_value:
-            return "Orange"  # Moderate deficiency
-        else:
-            return "Yellow"  # Safe
-    elif direction == "right":  # For excess
-        if value > (mean_value + threshold):
-            return "Red"  # Severe excess
-        elif value > mean_value:
-            return "Orange"  # Moderate excess
-        else:
-            return "Yellow"  # Safe
+        
+    with open(LABEL_ENCODER_FILE, 'wb') as le_file:
+        pickle.dump(label_encoder, le_file)
 
 def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model, label_encoder, clusters, mean_values):
     """Get crop recommendations based on input parameters."""
@@ -145,42 +123,22 @@ def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, mod
     
     # Create a recommendation string based on the comparison between input values and ideal ranges
     recommendation = []
-    for parameter in feature_cols:
-        value = locals()[parameter]  # Access variable by name
-        mean_value = mean_values[parameter]
-        deviation = value - mean_value
-        color = "hijau"  # Default color
-        
-        if deviation > 0:
-            if deviation > (mean_value * 0.2):  # 20% threshold
-                color = "Red"
-                recommendation.append(f"kadar {parameter} terlalu banyak {abs(deviation)} poin dari yang seharusnya {mean_value}, Warna: {color}")
-            else:
-                color = "Orange"
-                recommendation.append(f"kadar {parameter} sedikit banyak {abs(deviation)} poin dari yang seharusnya {mean_value}, Warna: {color}")
-        elif deviation < 0:
-            if abs(deviation) > (mean_value * 0.2):  # 20% threshold
-                color = "Red"
-                recommendation.append(f"kadar {parameter} terlalu sedikit {abs(deviation)} poin dari yang seharusnya {mean_value}, Warna: {color}")
-            else:
-                color = "Orange"
-                recommendation.append(f"kadar {parameter} sedikit kurang {abs(deviation)} poin dari yang seharusnya {mean_value}, Warna: {color}")
-        else:
-            recommendation.append(f"kadar {parameter} sudah sesuai dengan yang seharusnya (nilai input-mean: {mean_value}), Warna: hijau")
-    
-    # Add information about the suggested crop from the model
-    recommendation.append(f"Tanaman yang disarankan berdasarkan model adalah: {predicted_label}")
-    
-    return "\n".join(recommendation)
- 
-    # Create a recommendation string based on the comparison between input values and ideal ranges
-    recommendation = []
     for parameter, value in zip(feature_cols, [N, P, K, Temperature, Humidity, ph, Rainfall]):
         mean_value = mean_values[parameter]
-        direction = "left" if value < mean_value else "right"
-        color = determine_color(value, mean_value, direction)
+        deviation = value - mean_value
+        color = "Green"  # Default color for values within the safe range
         
-        recommendation.append(f"{parameter} {value}, Warna: {color}")
+        if deviation > (mean_value * 0.2):
+            color = "Red"
+            recommendation.append(f"kadar {parameter} terlalu banyak {abs(deviation):.2f} poin dari yang seharusnya {mean_value:.2f}, Warna: {color}")
+        elif deviation < -(mean_value * 0.2):
+            color = "Red"
+            recommendation.append(f"kadar {parameter} terlalu sedikit {abs(deviation):.2f} poin dari yang seharusnya {mean_value:.2f}, Warna: {color}")
+        elif deviation != 0:
+            color = "Orange"
+            recommendation.append(f"kadar {parameter} sedikit berbeda {abs(deviation):.2f} poin dari yang seharusnya {mean_value:.2f}, Warna: {color}")
+        else:
+            recommendation.append(f"kadar {parameter} sesuai dengan nilai ideal {mean_value:.2f}, Warna: hijau")
     
     # Add information about the suggested crop from the model
     recommendation.append(f"Tanaman yang disarankan berdasarkan model adalah: {predicted_label}")
@@ -202,8 +160,8 @@ print("Best parameters:", best_params)
 # Evaluate the model
 evaluate_model(best_model, X_test, y_test, label_encoder)
 
-# Save the model and scaler
-save_model_and_scaler(best_model, scaler)
+# Save the model, scaler, and label encoder
+save_model_and_scaler(best_model, scaler, label_encoder)
 
 # Define clusters and mean values for recommendations
 clusters = crop_data.groupby("label").mean()
