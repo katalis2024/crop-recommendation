@@ -5,6 +5,7 @@ import numpy as np
 import os
 from collections import Counter
 from fastapi.middleware.cors import CORSMiddleware
+import traceback
 
 app = FastAPI()
 
@@ -42,8 +43,13 @@ def load_models():
         model_path = os.path.join(model_dir, f"{name}.pkl")
         if os.path.isfile(model_path):
             with open(model_path, "rb") as file:
-                models[name] = pickle.load(file)
-                print(f"Successfully loaded {name}")
+                loaded_model = pickle.load(file)
+                # Check if the loaded model is a tuple, extract the model if needed
+                if isinstance(loaded_model, tuple):
+                    models[name] = loaded_model[0]  # Assuming the first element is the model
+                else:
+                    models[name] = loaded_model
+                print(f"Successfully loaded {name} of type {type(models[name])}")
         else:
             print(f"Warning: {name}.pkl not found in {model_dir}")
     return models
@@ -72,18 +78,29 @@ def ensemble_voting(predictions_dict, accuracies_dict):
 # Get recommendations based on parameters
 def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall):
     average_values = {
-        'N': 70, 'P': 45, 'K': 70, 'Temperature': 25,
-        'Humidity': 70, 'ph': 6.2, 'Rainfall': 200
+        'N': 50.55, 'P': 53.36, 'K': 48.15, 'Temperature': 25.62,
+        'Humidity': 71.48, 'ph': 6.47, 'Rainfall': 103.46
     }
+    
     recommendations = []
+    color_thresholds = {
+        'Red': 15, 'Orange': 5, 'Yellow': 1
+    }
+
     for param, pred_value in zip(average_values.keys(), [N, P, K, Temperature, Humidity, ph, Rainfall]):
         avg_value = average_values[param]
-        if pred_value < avg_value:
-            recommendations.append(f"{param} is deficient (prediction: {pred_value:.2f}). Increase levels.")
-        elif pred_value > avg_value:
-            recommendations.append(f"{param} is in excess (prediction: {pred_value:.2f}). Reduce levels.")
+        deviation = pred_value - avg_value
+        
+        if abs(deviation) > color_thresholds['Red']:
+            color = 'Red'
+        elif abs(deviation) > color_thresholds['Orange']:
+            color = 'Orange'
         else:
-            recommendations.append(f"{param} is adequate (prediction: {pred_value:.2f}).")
+            color = 'Yellow'
+        
+        status = "sedikit berbeda" if color == 'Orange' else "terlalu sedikit" if deviation < 0 else "terlalu tinggi"
+        recommendations.append(f"kadar {param} {status} {abs(deviation):.2f} poin dari yang seharusnya {avg_value:.2f}, Warna: {color}")
+
     return "\n".join(recommendations)
 
 # GET endpoint
@@ -95,43 +112,52 @@ def read_root():
 @app.post("/predict", response_model=ModelOutput)
 async def predict_crop(input_data: CropInput):
     try:
-        input_features = np.array([[
-            input_data.N, input_data.P, input_data.K,
-            input_data.Temperature, input_data.Humidity,
-            input_data.ph, input_data.Rainfall
-        ]])
+        # Prepare input features for model 1
+        input_features = np.array([[input_data.N, input_data.P, input_data.K,
+                                    input_data.Temperature, input_data.Humidity,
+                                    input_data.ph, input_data.Rainfall]])
 
         # Predictions from Model 1
-        predictions_dict = {
-            name: model.predict(input_features)[0] 
-            for name, model in models.items() 
-            if name != "model2_model" and name in model_accuracies
-        }
+        predictions_dict = {}
+        for name, model in models.items():
+            if name != "model2_model" and name in model_accuracies:
+                if hasattr(model, "predict"):
+                    predictions_dict[name] = model.predict(input_features)[0]
+                else:
+                    raise ValueError(f"{name} does not have a predict method.")
 
         if not predictions_dict:
             raise ValueError("No valid predictions from Model 1")
 
         final_prediction = ensemble_voting(predictions_dict, model_accuracies)
 
+        # Prepare input for Model 2
+        model2_input = np.array([[input_data.N, input_data.P, input_data.K,
+                                   input_data.Temperature, input_data.Humidity,
+                                   input_data.ph, input_data.Rainfall]])
+
         # Prediction with Model 2
         model2 = models.get("model2_model")
         if model2:
-            model2_input = np.array([[final_prediction]]).reshape(1, -1)
             model2_recommendation = model2.predict(model2_input)[0]
         else:
             model2_recommendation = "Model 2 not available."
 
+        # Get recommendation details for output
         recommendation_text = get_recommendation(
             input_data.N, input_data.P, input_data.K, input_data.Temperature, 
             input_data.Humidity, input_data.ph, input_data.Rainfall
         )
 
+        # Return the model output
         return ModelOutput(
-            model1_output=str(final_prediction),
+            model1_output=str(final_prediction),  # Ensure final_prediction is a string
             model2_recommendation=f"{model2_recommendation}\n\n{recommendation_text}"
         )
 
     except Exception as e:
+        print("An error occurred:", str(e))
+        traceback.print_exc()  # Print the stack trace for debugging
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
