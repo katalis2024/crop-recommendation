@@ -14,7 +14,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 
 # Constants
 DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/Crop_recommendation.csv'
-MODEL_FILE = 'model2_model.pkl'  # Nama file yang baru
+MODEL1_FILE = 'model1_model.pkl'  # File untuk menyimpan model 1
+MODEL2_FILE = 'model2_model.pkl'    # File untuk menyimpan model 2
 
 def load_data(dataset_path):
     """Load dataset from a specified path."""
@@ -54,7 +55,8 @@ def tune_hyperparameters(pipeline, X_train, y_train):
         'regressor__colsample_bytree': [0.3, 0.5, 0.7]
     }
     
-    random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, scoring='neg_mean_squared_error', random_state=42)
+    random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, 
+                                       scoring='neg_mean_squared_error', random_state=42)
     random_search.fit(X_train, y_train)
     
     return random_search.best_estimator_, random_search.best_params_
@@ -77,48 +79,53 @@ def evaluate_model(model, X, y):
     plt.grid()
     plt.show()
 
-def save_model_and_scaler(model, scaler, label_encoder):
+def save_model_and_scaler(model, scaler, label_encoder, model_file):
     """Save the trained model, scaler, and label encoder to disk in a single file."""
-    with open(MODEL_FILE, 'wb') as model_file:
+    with open(model_file, 'wb') as model_file:
         pickle.dump((model, scaler, label_encoder), model_file)
 
-def load_models():
+def load_model(model_file):
     """Load model, scaler, and label encoder from a single file."""
     try:
-        with open(MODEL_FILE, "rb") as file:
+        with open(model_file, "rb") as file:
             model, scaler, label_encoder = pickle.load(file)
         return model, scaler, label_encoder
     except FileNotFoundError:
-        print(f"Error: {MODEL_FILE} not found.")
+        print(f"Error: {model_file} not found.")
         sys.exit()
     except Exception as e:
-        print(f"Error loading models: {e}")
+        print(f"Error loading model: {e}")
         sys.exit()
 
-def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model, clusters, mean_values):
+def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model1, model2, clusters, mean_values):
     feature_cols = ["N", "P", "K", "Temperature", "Humidity", "ph", "Rainfall"]
     input_data = pd.DataFrame([[N, P, K, Temperature, Humidity, ph, Rainfall]], columns=feature_cols)
     
     # Scale the input data
     input_data_scaled = scaler.transform(input_data.values)
 
-    # Predict the crop label using the XGBoost model
+    # Predict the crop label using the first model (XGBoost)
     try:
-        predicted_numeric = model.predict(input_data_scaled)
-        predicted_value = predicted_numeric[0]  # Ambil prediksi pertama jika ini adalah regresi
-        
-        # Temukan label tanaman yang sesuai berdasarkan prediksi
-        predicted_label = find_closest_label(predicted_value, clusters)
+        final_prediction = model1.predict(input_data_scaled)
+        final_prediction_value = final_prediction[0]
     except Exception as e:
-        return f"Error during prediction: {e}"
+        return f"Error during prediction (Model 1): {e}"
 
-    # Dapatkan rentang ideal untuk tanaman yang diprediksi
-    if predicted_label in clusters.index:
-        ideal_ranges = clusters.loc[predicted_label]
-    else:
-        return f"Error: The predicted crop '{predicted_label}' is not available in the dataset."
-    
-    # Lanjutkan dengan sisa logika untuk memberikan rekomendasi...
+    # Convert the numeric prediction to a label
+    try:
+        predicted_label = label_encoder.inverse_transform([int(final_prediction_value)])[0]  # Convert to int if necessary
+        # Retrieve cluster data for the predicted label to inform model 2
+        cluster_data = clusters.loc[predicted_label].values.reshape(1, -1)
+
+        # Ensure that the cluster_data is a valid input for model2
+        if model2 is not None:
+            predicted_numeric = model2.predict(cluster_data)
+        else:
+            predicted_numeric = "Model 2 tidak tersedia"
+    except Exception as e:
+        return f"Error during prediction (Model 2): {e}"
+
+    # Generate the recommendation based on input data
     recommendation = []
     for parameter, value in zip(feature_cols, [N, P, K, Temperature, Humidity, ph, Rainfall]):
         mean_value = mean_values[parameter]
@@ -137,23 +144,9 @@ def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, mod
         else:
             recommendation.append(f"kadar {parameter} sesuai dengan nilai ideal {mean_value:.2f}, Warna: hijau")
     
-    recommendation.append(f"Tanaman yang disarankan berdasarkan model adalah: {predicted_label}")
+    recommendation.append(f"Tanaman yang disarankan berdasarkan model adalah: {predicted_label} (Output Model 2: {predicted_numeric})")
     
     return "\n".join(recommendation)
-
-def find_closest_label(predicted_value, clusters):
-    """Temukan label tanaman terdekat berdasarkan nilai prediksi."""
-    closest_label = None
-    min_diff = float('inf')
-    
-    for label in clusters.index:
-        ideal_value = clusters.loc[label].mean()
-        diff = abs(predicted_value - ideal_value)
-        if diff < min_diff:
-            min_diff = diff
-            closest_label = label
-            
-    return closest_label
 
 if __name__ == "__main__":
     crop_data = load_data(DATASET_PATH)
@@ -165,16 +158,35 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+    # Model 1
     pipeline = create_pipeline()
-    best_model, best_params = tune_hyperparameters(pipeline, X_train, y_train)
+    best_model1, best_params1 = tune_hyperparameters(pipeline, X_train, y_train)
 
-    print("Best parameters:", best_params)
-    evaluate_model(best_model, X_test, y_test)
+    print("Best parameters for Model 1:", best_params1)
+    evaluate_model(best_model1, X_test, y_test)
 
-    save_model_and_scaler(best_model, scaler, label_encoder)
+    save_model_and_scaler(best_model1, scaler, label_encoder, MODEL1_FILE)
 
-    # Example of using the get_recommendation function
-    recommendation_output = get_recommendation(N=60, P=30, K=50, Temperature=25, Humidity=70, ph=6.5, Rainfall=100, 
-                                               scaler=scaler, model=best_model,
-                                               clusters=clusters, mean_values=mean_values)
+    # Load Model 1
+    model1, scaler, label_encoder = load_model(MODEL1_FILE)
+
+    # Model 2 (Jika ada, proses serupa dilakukan)
+    model2 = None  # Ganti ini dengan pemuatan model2 jika ada
+
+    # Contoh menggunakan fungsi get_recommendation
+    recommendation_output = get_recommendation(
+        N=60, 
+        P=30, 
+        K=50, 
+        Temperature=25, 
+        Humidity=70, 
+        ph=6.5, 
+        Rainfall=100, 
+        scaler=scaler, 
+        model1=model1, 
+        model2=model2, 
+        clusters=clusters, 
+        mean_values=mean_values
+    )
+    
     print(recommendation_output)

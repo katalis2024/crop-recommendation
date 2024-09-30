@@ -8,17 +8,13 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from xgboost import XGBClassifier
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc, roc_auc_score
-from sklearn.preprocessing import label_binarize
-
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Constants
 DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/Crop_recommendation.csv'
-MODEL_FILE = 'xgb_model.pkl'
-SCALER_FILE = 'scaler.pkl'
-LABEL_ENCODER_FILE = 'label_encoder.pkl'
+MODEL_FILE = 'model2_model.pkl'  # Nama file yang baru
 
 def load_data(dataset_path):
     """Load dataset from a specified path."""
@@ -30,18 +26,15 @@ def load_data(dataset_path):
 
 def preprocess_data(crop_data):
     """Preprocess the crop data: imputing, encoding, and scaling."""
-    # Check for missing values
     if crop_data.isnull().sum().any():
         imputer = SimpleImputer(strategy='mean')
         x_imputed = imputer.fit_transform(crop_data.drop(['label'], axis=1))
     else:
         x_imputed = crop_data.drop(['label'], axis=1).values
 
-    # Encode labels
     label_encoder = LabelEncoder()
     y_encoded = label_encoder.fit_transform(crop_data['label'])
 
-    # Scale the data using StandardScaler
     scaler = StandardScaler()
     x_scaled = scaler.fit_transform(x_imputed)
 
@@ -49,79 +42,83 @@ def preprocess_data(crop_data):
 
 def create_pipeline():
     """Create a machine learning pipeline with XGBoost."""
-    return Pipeline([('classifier', XGBClassifier())])
+    return Pipeline([('regressor', XGBRegressor())])
 
 def tune_hyperparameters(pipeline, X_train, y_train):
     """Tune hyperparameters using RandomizedSearchCV."""
     param_distributions = {
-        'classifier__n_estimators': [100, 200, 300],
-        'classifier__max_depth': [3, 6, 9, 12],
-        'classifier__learning_rate': [0.01, 0.1, 0.2],
-        'classifier__subsample': [0.5, 0.75, 1.0],
-        'classifier__colsample_bytree': [0.3, 0.5, 0.7]
+        'regressor__n_estimators': [100, 200, 300],
+        'regressor__max_depth': [3, 6, 9, 12],
+        'regressor__learning_rate': [0.01, 0.1, 0.2],
+        'regressor__subsample': [0.5, 0.75, 1.0],
+        'regressor__colsample_bytree': [0.3, 0.5, 0.7]
     }
     
-    random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, scoring='accuracy', random_state=42)
+    random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, scoring='neg_mean_squared_error', random_state=42)
     random_search.fit(X_train, y_train)
     
     return random_search.best_estimator_, random_search.best_params_
 
-def evaluate_model(model, X, y, label_encoder):
-    """Evaluate the model performance using various metrics."""
+def evaluate_model(model, X, y):
+    """Evaluate the model performance using regression metrics."""
     y_pred = model.predict(X)
-    print("Confusion Matrix:\n", confusion_matrix(y, y_pred))
-    print("Classification Report:\n", classification_report(y, y_pred))
 
-    # Calculate ROC curve and AUC for multi-class classification (macro-average)
-    y_prob = model.predict_proba(X)
-    y_bin = label_binarize(y, classes=np.arange(len(label_encoder.classes_)))
-    roc_auc = roc_auc_score(y_bin, y_prob, average='macro')
-    print(f"Macro-Average AUC: {roc_auc:.2f}")
+    mse = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    print(f"Mean Squared Error: {mse:.4f}")
+    print(f"R^2 Score: {r2:.4f}")
 
-    # Plot confusion matrix
-    cm = confusion_matrix(y, y_pred)
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=label_encoder.classes_, 
-                yticklabels=label_encoder.classes_)
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.title('Confusion Matrix')
+    plt.scatter(y, y_pred, alpha=0.7)
+    plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2)
+    plt.xlabel('True Values')
+    plt.ylabel('Predicted Values')
+    plt.title('True vs Predicted Values')
+    plt.grid()
     plt.show()
 
 def save_model_and_scaler(model, scaler, label_encoder):
-    """Save the trained model, scaler, and label encoder to disk."""
+    """Save the trained model, scaler, and label encoder to disk in a single file."""
     with open(MODEL_FILE, 'wb') as model_file:
-        pickle.dump(model, model_file)
+        pickle.dump((model, scaler, label_encoder), model_file)
 
-    with open(SCALER_FILE, 'wb') as scaler_file:
-        pickle.dump(scaler, scaler_file)
-        
-    with open(LABEL_ENCODER_FILE, 'wb') as le_file:
-        pickle.dump(label_encoder, le_file)
+def load_models():
+    """Load model, scaler, and label encoder from a single file."""
+    try:
+        with open(MODEL_FILE, "rb") as file:
+            model, scaler, label_encoder = pickle.load(file)
+        return model, scaler, label_encoder
+    except FileNotFoundError:
+        print(f"Error: {MODEL_FILE} not found.")
+        sys.exit()
+    except Exception as e:
+        print(f"Error loading models: {e}")
+        sys.exit()
 
-def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model, label_encoder, clusters, mean_values):
-    """Get crop recommendations based on input parameters."""
+def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model, clusters, mean_values):
     feature_cols = ["N", "P", "K", "Temperature", "Humidity", "ph", "Rainfall"]
     input_data = pd.DataFrame([[N, P, K, Temperature, Humidity, ph, Rainfall]], columns=feature_cols)
     
     # Scale the input data
-    input_data_scaled = scaler.transform(input_data)
-    
+    input_data_scaled = scaler.transform(input_data.values)
+
     # Predict the crop label using the XGBoost model
     try:
-        predicted_label_encoded = model.predict(input_data_scaled)[0]
-        predicted_label = label_encoder.inverse_transform([predicted_label_encoded])[0]
+        predicted_numeric = model.predict(input_data_scaled)
+        predicted_value = predicted_numeric[0]  # Ambil prediksi pertama jika ini adalah regresi
+        
+        # Temukan label tanaman yang sesuai berdasarkan prediksi
+        predicted_label = find_closest_label(predicted_value, clusters)
     except Exception as e:
         return f"Error during prediction: {e}"
-    
-    # Get the ideal ranges for the predicted crop
+
+    # Dapatkan rentang ideal untuk tanaman yang diprediksi
     if predicted_label in clusters.index:
         ideal_ranges = clusters.loc[predicted_label]
     else:
         return f"Error: The predicted crop '{predicted_label}' is not available in the dataset."
     
-    # Create a recommendation string based on the comparison between input values and ideal ranges
+    # Lanjutkan dengan sisa logika untuk memberikan rekomendasi...
     recommendation = []
     for parameter, value in zip(feature_cols, [N, P, K, Temperature, Humidity, ph, Rainfall]):
         mean_value = mean_values[parameter]
@@ -140,33 +137,44 @@ def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, mod
         else:
             recommendation.append(f"kadar {parameter} sesuai dengan nilai ideal {mean_value:.2f}, Warna: hijau")
     
-    # Add information about the suggested crop from the model
     recommendation.append(f"Tanaman yang disarankan berdasarkan model adalah: {predicted_label}")
     
     return "\n".join(recommendation)
 
-# Main execution flow
-crop_data = load_data(DATASET_PATH)
-x_scaled, y_encoded, scaler, label_encoder = preprocess_data(crop_data)
+def find_closest_label(predicted_value, clusters):
+    """Temukan label tanaman terdekat berdasarkan nilai prediksi."""
+    closest_label = None
+    min_diff = float('inf')
+    
+    for label in clusters.index:
+        ideal_value = clusters.loc[label].mean()
+        diff = abs(predicted_value - ideal_value)
+        if diff < min_diff:
+            min_diff = diff
+            closest_label = label
+            
+    return closest_label
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(x_scaled, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded)
+if __name__ == "__main__":
+    crop_data = load_data(DATASET_PATH)
+    X, y, scaler, label_encoder = preprocess_data(crop_data)
 
-# Create and tune the model pipeline
-pipeline = create_pipeline()
-best_model, best_params = tune_hyperparameters(pipeline, X_train, y_train)
-print("Best parameters:", best_params)
+    # Assuming clusters and mean_values are defined as follows
+    clusters = crop_data.groupby('label').mean()
+    mean_values = {col: crop_data[col].mean() for col in crop_data.columns if col != 'label'}
 
-# Evaluate the model
-evaluate_model(best_model, X_test, y_test, label_encoder)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Save the model, scaler, and label encoder
-save_model_and_scaler(best_model, scaler, label_encoder)
+    pipeline = create_pipeline()
+    best_model, best_params = tune_hyperparameters(pipeline, X_train, y_train)
 
-# Define clusters and mean values for recommendations
-clusters = crop_data.groupby("label").mean()
-clusters = clusters.apply(pd.to_numeric, errors='coerce')
-mean_values = clusters.mean().to_dict()
+    print("Best parameters:", best_params)
+    evaluate_model(best_model, X_test, y_test)
 
-# Test the recommendation function
-print(get_recommendation(90, 40, 40, 20, 80, 7, 200, scaler, best_model, label_encoder, clusters, mean_values))
+    save_model_and_scaler(best_model, scaler, label_encoder)
+
+    # Example of using the get_recommendation function
+    recommendation_output = get_recommendation(N=60, P=30, K=50, Temperature=25, Humidity=70, ph=6.5, Rainfall=100, 
+                                               scaler=scaler, model=best_model,
+                                               clusters=clusters, mean_values=mean_values)
+    print(recommendation_output)

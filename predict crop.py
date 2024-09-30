@@ -165,7 +165,7 @@ for model_name, model in models.items():
         print(f"{model_name} does not support probability estimation for ROC-AUC.")
 
     # Save the model
-    save_model(model, model_name)
+    save_model(model, model_name)   
 
 from collections import Counter
 
@@ -256,3 +256,18 @@ metrics_filename = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/model_metr
 metrics_df.to_csv(metrics_filename, index=False)
 
 print(f"Model metrics have been saved to {metrics_filename}.")
+
+# Visualize evaluation metrics
+def visualize_metrics(metrics_df):
+    metrics_df.set_index("Model", inplace=True)
+    metrics_df[['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC']].plot(kind='bar', figsize=(10, 6))
+    plt.title('Model Evaluation Metrics')
+    plt.ylabel('Scores')
+    plt.ylim(0, 1)
+    plt.xticks(rotation=45)
+    plt.grid(axis='y')
+    plt.legend(loc='upper left')
+    plt.tight_layout()
+    plt.show()
+
+visualize_metrics(metrics_df)
