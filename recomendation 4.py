@@ -3,7 +3,10 @@ import numpy as np
 import pandas as pd
 import pickle
 import sys
+import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')  
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
@@ -166,6 +169,56 @@ if __name__ == "__main__":
     evaluate_model(best_model1, X_test, y_test)
 
     save_model_and_scaler(best_model1, scaler, label_encoder, MODEL1_FILE)
+
+def evaluate_model(model, X, y):
+    """Evaluate the model performance using regression metrics and visualize results."""
+    y_pred = model.predict(X)
+
+    # Calculate metrics
+    mse = mean_squared_error(y, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y, y_pred)
+
+    print(f"Mean Squared Error (MSE): {mse:.4f}")
+    print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
+    print(f"R^2 Score: {r2:.4f}")
+
+    # Visualization
+    plt.figure(figsize=(16, 8))
+
+    # Scatter plot of true vs predicted values
+    plt.subplot(1, 2, 1)
+    plt.scatter(y, y_pred, alpha=0.7, color='b')
+    plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2)
+    plt.xlabel('True Values')
+    plt.ylabel('Predicted Values')
+    plt.title('True vs Predicted Values')
+    plt.grid(True)
+
+    # Residual plot
+    plt.subplot(1, 2, 2)
+    residuals = y - y_pred
+    sns.histplot(residuals, kde=True, color='orange')
+    plt.title('Residuals Distribution')
+    plt.xlabel('Residuals')
+    plt.ylabel('Frequency')
+
+    plt.tight_layout()
+    plt.show()
+
+    # Bar plot of evaluation metrics
+    metrics = ['MSE', 'RMSE', 'R^2']
+    values = [mse, rmse, r2]
+    
+    plt.figure(figsize=(8, 6))
+    sns.barplot(x=metrics, y=values, palette='Blues_d')
+    plt.title('Evaluation Metrics')
+    plt.ylabel('Score')
+    for i, v in enumerate(values):
+        plt.text(i, v + 0.01, f"{v:.4f}", ha='center', va='bottom')
+    plt.tight_layout()
+    plt.show()
+
 
     # Load Model 1
     model1, scaler, label_encoder = load_model(MODEL1_FILE)

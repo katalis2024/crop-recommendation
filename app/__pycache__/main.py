@@ -109,6 +109,7 @@ def read_root():
     return {"message": "Welcome to the Crop Recommendation API!"}
 
 # POST endpoint for prediction
+# POST endpoint for prediction
 @app.post("/predict", response_model=ModelOutput)
 async def predict_crop(input_data: CropInput):
     try:
@@ -129,12 +130,17 @@ async def predict_crop(input_data: CropInput):
         if not predictions_dict:
             raise ValueError("No valid predictions from Model 1")
 
+        # Get the final prediction using ensemble voting
         final_prediction = ensemble_voting(predictions_dict, model_accuracies)
+
+        # Convert the final prediction from model 1 to string
+        model1_output_str = str(final_prediction)
+        print(f"Model 1 output (as string): {model1_output_str} - type: {type(model1_output_str)}")
 
         # Prepare input for Model 2
         model2_input = np.array([[input_data.N, input_data.P, input_data.K,
-                                   input_data.Temperature, input_data.Humidity,
-                                   input_data.ph, input_data.Rainfall]])
+                                  input_data.Temperature, input_data.Humidity,
+                                  input_data.ph, input_data.Rainfall]])
 
         # Prediction with Model 2
         model2 = models.get("model2_model")
@@ -143,15 +149,14 @@ async def predict_crop(input_data: CropInput):
         else:
             model2_recommendation = "Model 2 not available."
 
-        # Get recommendation details for output
+        # Generate recommendation text
         recommendation_text = get_recommendation(
-            input_data.N, input_data.P, input_data.K, input_data.Temperature, 
+            input_data.N, input_data.P, input_data.K, input_data.Temperature,
             input_data.Humidity, input_data.ph, input_data.Rainfall
         )
 
-        # Return the model output
         return ModelOutput(
-            model1_output=str(final_prediction),  # Ensure final_prediction is a string
+            model1_output=model1_output_str,  # Ensure final_prediction is a string
             model2_recommendation=f"{model2_recommendation}\n\n{recommendation_text}"
         )
 
@@ -159,6 +164,8 @@ async def predict_crop(input_data: CropInput):
         print("An error occurred:", str(e))
         traceback.print_exc()  # Print the stack trace for debugging
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
 
 if __name__ == "__main__":
     import uvicorn
