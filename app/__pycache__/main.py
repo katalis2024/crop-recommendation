@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import pickle
 import numpy as np
 import os
-from collections import Counter
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
 
@@ -36,7 +35,7 @@ class ModelOutput(BaseModel):
 # Load models
 def load_models():
     models = {}
-    model_names = ["KNN_model", "DT_model", "RFC_model", "GBC_model", "XGB_model", "SVM_model", "model2_model"]
+    model_names = ["Stacked_model", "model1_model"]
     model_dir = "C:\\Users\\ACER\\OneDrive - mail.unnes.ac.id\\katalis\\app\\models"
 
     for name in model_names:
@@ -44,11 +43,7 @@ def load_models():
         if os.path.isfile(model_path):
             with open(model_path, "rb") as file:
                 loaded_model = pickle.load(file)
-                # Check if the loaded model is a tuple, extract the model if needed
-                if isinstance(loaded_model, tuple):
-                    models[name] = loaded_model[0]  # Assuming the first element is the model
-                else:
-                    models[name] = loaded_model
+                models[name] = loaded_model
                 print(f"Successfully loaded {name} of type {type(models[name])}")
         else:
             print(f"Warning: {name}.pkl not found in {model_dir}")
@@ -56,24 +51,6 @@ def load_models():
 
 # Load models
 models = load_models()
-
-# Accuracies for each model
-model_accuracies = {
-    "KNN_model": 0.85,
-    "DT_model": 0.78,
-    "RFC_model": 0.90,
-    "GBC_model": 0.88,
-    "XGB_model": 0.91,
-    "SVM_model": 0.86
-}
-
-# Ensemble voting function
-def ensemble_voting(predictions_dict, accuracies_dict):
-    prediction_counter = Counter(predictions_dict.values())
-    if prediction_counter.most_common()[0][1] > len(predictions_dict) / 2:
-        return prediction_counter.most_common()[0][0]
-    else:
-        return max(predictions_dict.items(), key=lambda x: accuracies_dict[x[0]])[1]
 
 # Get recommendations based on parameters
 def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall):
@@ -109,7 +86,6 @@ def read_root():
     return {"message": "Welcome to the Crop Recommendation API!"}
 
 # POST endpoint for prediction
-# POST endpoint for prediction
 @app.post("/predict", response_model=ModelOutput)
 async def predict_crop(input_data: CropInput):
     try:
@@ -118,55 +94,24 @@ async def predict_crop(input_data: CropInput):
                                     input_data.Temperature, input_data.Humidity,
                                     input_data.ph, input_data.Rainfall]])
 
-        # Predictions from Model 1
-        predictions_dict = {}
-        for name, model in models.items():
-            if name != "model2_model" and name in model_accuracies:
-                if hasattr(model, "predict"):
-                    predictions_dict[name] = model.predict(input_features)[0]
-                else:
-                    raise ValueError(f"{name} does not have a predict method.")
+        # Direct prediction from Model 1
+        model1_output = "Model 1 tidak tersedia"
+        if "Stacked_model" in models:
+            model1_output = models["Stacked_model"].predict(input_features)[0]
 
-        if not predictions_dict:
-            raise ValueError("No valid predictions from Model 1")
+        # For Model 2 prediction (if it exists)
+        model2_recommendation = "Model 2 tidak tersedia"
+        if "model2_model" in models:
+            model2_input = np.array([[model1_output]])  # Adjust input shape if necessary
+            model2_recommendation = models["model1_model"].predict(model2_input)[0]
 
-        # Get the final prediction using ensemble voting
-        final_prediction = ensemble_voting(predictions_dict, model_accuracies)
+        # Get recommendations based on input parameters
+        recommendations = get_recommendation(input_data.N, input_data.P, input_data.K,
+                                             input_data.Temperature, input_data.Humidity,
+                                             input_data.ph, input_data.Rainfall)
 
-        # Convert the final prediction from model 1 to string
-        model1_output_str = str(final_prediction)
-        print(f"Model 1 output (as string): {model1_output_str} - type: {type(model1_output_str)}")
-
-        # Prepare input for Model 2
-        model2_input = np.array([[input_data.N, input_data.P, input_data.K,
-                                  input_data.Temperature, input_data.Humidity,
-                                  input_data.ph, input_data.Rainfall]])
-
-        # Prediction with Model 2
-        model2 = models.get("model2_model")
-        if model2:
-            model2_recommendation = model2.predict(model2_input)[0]
-        else:
-            model2_recommendation = "Model 2 not available."
-
-        # Generate recommendation text
-        recommendation_text = get_recommendation(
-            input_data.N, input_data.P, input_data.K, input_data.Temperature,
-            input_data.Humidity, input_data.ph, input_data.Rainfall
-        )
-
-        return ModelOutput(
-            model1_output=model1_output_str,  # Ensure final_prediction is a string
-            model2_recommendation=f"{model2_recommendation}\n\n{recommendation_text}"
-        )
-
+        return ModelOutput(model1_output=model1_output, model2_recommendation=model2_recommendation)
+    
     except Exception as e:
-        print("An error occurred:", str(e))
-        traceback.print_exc()  # Print the stack trace for debugging
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
