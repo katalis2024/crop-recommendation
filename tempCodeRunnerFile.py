@@ -30,12 +30,6 @@ crop_data = pd.read_csv(DATASET_PATH)
 # Prepare the dataset
 y = crop_data['label']
 
-# Check unique labels and their types
-unique_labels = y.unique()
-print("Unique labels and their types:")
-for label in unique_labels:
-    print(f"Label: {label}, Type: {type(label)}")
-
 # Convert labels to strings (or integers if appropriate)
 y = y.astype(str)  # Convert to string type
 
@@ -232,4 +226,3 @@ print(metrics_df)
 # Save the metrics DataFrame to CSV
 metrics_df.to_csv('C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/model_metrics.csv', index=False)
 print("Model metrics saved to CSV.")
-

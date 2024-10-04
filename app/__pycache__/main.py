@@ -31,12 +31,13 @@ class CropInput(BaseModel):
 class ModelOutput(BaseModel):
     model1_output: str
     model2_recommendation: str
+    recommendations: str  # Added recommendations output
 
 # Load models
 def load_models():
     models = {}
-    model_names = ["Stacked_model", "model1_model"]
-    model_dir = "C:\\Users\\ACER\\OneDrive - mail.unnes.ac.id\\katalis\\app\\models"
+    model_names = ["Stacked_model", "model1_model"]  # Adjusted to match the file names
+    model_dir = "C:\\Users\\ACER\\OneDrive - mail.unnes.ac.id\\katalis\\app\\modelfix"
 
     for name in model_names:
         model_path = os.path.join(model_dir, f"{name}.pkl")
@@ -94,15 +95,15 @@ async def predict_crop(input_data: CropInput):
                                     input_data.Temperature, input_data.Humidity,
                                     input_data.ph, input_data.Rainfall]])
 
-        # Direct prediction from Model 1
+        # Direct prediction from Stacked Model (Model 1)
         model1_output = "Model 1 tidak tersedia"
         if "Stacked_model" in models:
             model1_output = models["Stacked_model"].predict(input_features)[0]
 
-        # For Model 2 prediction (if it exists)
+        # For Model 2 prediction (assuming it takes output from Model 1)
         model2_recommendation = "Model 2 tidak tersedia"
-        if "model2_model" in models:
-            model2_input = np.array([[model1_output]])  # Adjust input shape if necessary
+        if "model1_model" in models:
+            model2_input = np.array([[model1_output]])  # Input shape for regression model
             model2_recommendation = models["model1_model"].predict(model2_input)[0]
 
         # Get recommendations based on input parameters
@@ -110,7 +111,9 @@ async def predict_crop(input_data: CropInput):
                                              input_data.Temperature, input_data.Humidity,
                                              input_data.ph, input_data.Rainfall)
 
-        return ModelOutput(model1_output=model1_output, model2_recommendation=model2_recommendation)
+        return ModelOutput(model1_output=model1_output, 
+                           model2_recommendation=model2_recommendation,
+                           recommendations=recommendations)
     
     except Exception as e:
         traceback.print_exc()

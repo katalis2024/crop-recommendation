@@ -5,18 +5,16 @@ import pickle
 import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
+from xgboost import XGBRegressor
 
 # Constants
 DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/Crop_recommendation.csv'
-MODEL1_FILE = 'model1_model.pkl'  # File untuk menyimpan model 1
-MODEL2_FILE = 'model2_model.pkl'    # File untuk menyimpan model 2
+MODEL1_FILE = 'Stacked_model.pkl'  # File to save model 1
+MODEL2_FILE = 'model2_model.pkl'    # File to save model 2
 
 def load_data(dataset_path):
     """Load dataset from a specified path."""
@@ -39,21 +37,17 @@ def preprocess_data(crop_data):
 
     return x_scaled, y_encoded, scaler, label_encoder
 
-def create_pipeline():
-    """Create a machine learning pipeline with XGBoost."""
-    return Pipeline([('regressor', XGBRegressor())])
-
-def tune_hyperparameters(pipeline, X_train, y_train):
+def tune_hyperparameters(model, X_train, y_train):
     """Tune hyperparameters using RandomizedSearchCV."""
     param_distributions = {
-        'regressor__n_estimators': [100, 200, 300],
-        'regressor__max_depth': [3, 6, 9, 12],
-        'regressor__learning_rate': [0.01, 0.1, 0.2],
-        'regressor__subsample': [0.5, 0.75, 1.0],
-        'regressor__colsample_bytree': [0.3, 0.5, 0.7]
+        'n_estimators': [100, 200, 300],
+        'max_depth': [3, 6, 9, 12],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'subsample': [0.5, 0.75, 1.0],
+        'colsample_bytree': [0.3, 0.5, 0.7]
     }
     
-    random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=20, cv=3, n_jobs=-1, 
+    random_search = RandomizedSearchCV(model, param_distributions, n_iter=20, cv=3, n_jobs=-1, 
                                        scoring='neg_mean_squared_error', random_state=42)
     random_search.fit(X_train, y_train)
     
@@ -133,7 +127,7 @@ def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, mod
     # Scale the input data
     input_data_scaled = scaler.transform(input_data.values)
 
-    # Predict the crop label using the first model (XGBoost)
+    # Predict the crop label using the first model (Stacking)
     try:
         final_prediction = model1.predict(input_data_scaled)
         final_prediction_value = final_prediction[0]
@@ -146,11 +140,8 @@ def get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, mod
         # Retrieve cluster data for the predicted label to inform model 2
         cluster_data = clusters.loc[predicted_label].values.reshape(1, -1)
 
-        # Ensure that the cluster_data is a valid input for model2
-        if model2 is not None:
-            predicted_numeric = model2.predict(cluster_data)
-        else:
-            predicted_numeric = "Model 2 tidak tersedia"
+        # Predict using Model 2 (XGBRegressor)
+        predicted_numeric = model2.predict(cluster_data)
     except Exception as e:
         return f"Error during prediction (Model 2): {e}"
 
@@ -188,31 +179,27 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Model 1
-    pipeline = create_pipeline()
-    best_model1, best_params1 = tune_hyperparameters(pipeline, X_train, y_train)
+    # Tune hyperparameters for model 1
+    model1 = XGBRegressor()
+    best_model1, best_params1 = tune_hyperparameters(model1, X_train, y_train)
 
-    print("Best parameters for Model 1:", best_params1)
+    # Evaluate the best model
     evaluate_model(best_model1, X_test, y_test)
 
+    # Save the best model, scaler, and label encoder for model 1
     save_model_and_scaler(best_model1, scaler, label_encoder, MODEL1_FILE)
 
-    # Load model 1 for further predictions
-    model1, scaler, label_encoder = load_model(MODEL1_FILE)
+    # Load Model 1
+    model1, scaler1, label_encoder1 = load_model(MODEL1_FILE)
 
-    # Model 2 setup (You can replace this part with your actual model training and saving logic)
-    model2 = None  # Placeholder for your second model
-    # Uncomment the following line when you have model2 implemented
-    # model2 = load_model(MODEL2_FILE)
+    # Initialize and train Model 2 (XGBRegressor)
+    model2 = XGBRegressor(n_estimators=100, max_depth=3, learning_rate=0.1)
+    model2.fit(X_train, y_train)
 
-    # Input parameters for prediction
-    N = 10  # Example input values
-    P = 20
-    K = 15
-    Temperature = 30
-    Humidity = 80
-    ph = 6.5
-    Rainfall = 5
+    # Save Model 2
+    with open(MODEL2_FILE, 'wb') as model2_file:
+        pickle.dump(model2, model2_file)
 
-    recommendations = get_recommendation(N, P, K, Temperature, Humidity, ph, Rainfall, scaler, model1, model2, clusters, mean_values)
-    print(recommendations)
+    # Example prediction
+    result = get_recommendation(120, 60, 80, 30, 50, 6.5, 100, scaler1, model1, model2, clusters, mean_values)
+    print(result)
