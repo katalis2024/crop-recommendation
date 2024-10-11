@@ -7,7 +7,7 @@ from collections import Counter
 from sklearn.metrics import (accuracy_score, confusion_matrix, precision_score, recall_score, 
                              f1_score, roc_auc_score)
 from sklearn.model_selection import (train_test_split, cross_val_predict, 
-                                       StratifiedKFold)
+                                     StratifiedKFold, GridSearchCV)
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -16,21 +16,18 @@ from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
-from sklearn.cluster import AgglomerativeClustering
 import matplotlib.pyplot as plt
 import seaborn as sns
-import scipy.cluster.hierarchy as sch
 
 # Load the dataset
-DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/Crop_recommendation.csv'
+DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation .csv'
 if not os.path.exists(DATASET_PATH):
     print(f"File not found at: {DATASET_PATH}")
     sys.exit()
 crop_data = pd.read_csv(DATASET_PATH)
 
 # Prepare the dataset
-y = crop_data['label']
-y = y.astype(str)  # Ensure labels are strings
+y = crop_data['label'].astype(str)
 x = crop_data.drop(['label'], axis=1)
 
 # Encode labels
@@ -41,117 +38,130 @@ y_encoded = label_encoder.fit_transform(y)
 scaler = StandardScaler()
 x_scaled = scaler.fit_transform(x)
 
-# Hierarchical Clustering
-hc = AgglomerativeClustering(n_clusters=4, metric='euclidean', linkage='ward')
-clusters = hc.fit_predict(x_scaled)
+# --- Data Visualization ---
+# 1. Checking for missing data
+missing_data = crop_data.isnull().sum()
+print("Missing Data:\n", missing_data)
 
-# Modular function to save model
-def save_model(model, model_name):
-    model_filename = f'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/{model_name}_model.pkl'
-    with open(model_filename, 'wb') as model_file:
-        pickle.dump(model, model_file)
-    print(f"{model_name} has been saved to {model_filename}")
+# 2. Summary statistics
+summary_stats = crop_data.describe()
+print("\nSummary Statistics:\n", summary_stats)
 
-# Modular function to plot confusion matrix
-def plot_confusion_matrix(conf_matrix, model_name, output_dir):
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
-    plt.title(f'Confusion Matrix for {model_name}')
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
+# 3. Distribution of numerical features
+plt.figure(figsize=(15, 10))
+num_columns = len(crop_data.columns) - 1
+num_rows = (num_columns + 2) // 3
+for i, column in enumerate(crop_data.columns[:-1], 1):  # Exclude 'label'
+    plt.subplot(num_rows, 3, i)
+    sns.histplot(crop_data[column], kde=True)
+    plt.title(f'Distribution of {column}')
+plt.tight_layout()
+plt.show()
+
+# Correlation Matrix
+def plot_correlation_matrix(data):
+    plt.figure(figsize=(10, 8))
+    corr_matrix = data.corr()
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, linewidths=0.5)
+    plt.title('Correlation Matrix')
     plt.tight_layout()
-    plot_filename = os.path.join(output_dir, f'{model_name}_confusion_matrix.png')
-    plt.savefig(plot_filename)
-    plt.close()
-    print(f"Confusion matrix for {model_name} saved as {plot_filename}")
-
-# Modular function to visualize clustering results
-def plot_dendrogram(x_scaled):
-    plt.figure(figsize=(10, 7))
-    dendrogram = sch.dendrogram(sch.linkage(x_scaled, method='ward'))
-    plt.title('Hierarchical Clustering Dendrogram')
-    plt.xlabel('Samples')
-    plt.ylabel('Distance')
     plt.show()
 
-# Plot the dendrogram
-plot_dendrogram(x_scaled)
+plot_correlation_matrix(crop_data.drop('label', axis=1))
 
-# Analyze clustering results
-cluster_df = pd.DataFrame({'Cluster': clusters, 'Label': y})
-for i in range(4):
-    print(f"Crops in Cluster {i}: {cluster_df[cluster_df['Cluster'] == i]['Label'].unique()}")
-    print("---------------------------------------------------------------")
+# Output directory for saving models
+output_dir = "output"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
-# Split the data into training and testing sets
+# Splitting dataset
 x_train, x_test, y_train, y_test = train_test_split(x_scaled, y_encoded, test_size=0.2, random_state=42)
 
-# Define base models for stacking
+# Parameter grids for each model
+param_grids = {
+    'KNN': {'n_neighbors': [3, 5, 7, 9], 'weights': ['uniform', 'distance']},
+    'DT': {'max_depth': [None, 5, 10, 15], 'min_samples_split': [2, 5, 10]},
+    'RFC': {'n_estimators': [50, 100, 150], 'max_depth': [None, 5, 10], 'min_samples_split': [2, 5, 10]},
+    'GBC': {'n_estimators': [50, 100, 150], 'learning_rate': [0.01, 0.1, 0.5], 'max_depth': [3, 5, 7]},
+    'SVM': {'C': [0.1, 1, 10], 'gamma': ['scale', 'auto']},
+    'ANN': {'hidden_layer_sizes': [(50,), (100,), (50, 50)], 'activation': ['relu', 'tanh']}
+}
+
+# Base models for stacking
 base_models = [
     ('KNN', KNeighborsClassifier()),
     ('DT', DecisionTreeClassifier()),
     ('RFC', RandomForestClassifier()),
     ('GBC', GradientBoostingClassifier()),
-    ('SVM', SVC(kernel='rbf', C=1.0, gamma='scale', probability=True, random_state=42)),
+    ('SVM', SVC(kernel='rbf', probability=True, random_state=42)),
     ('ANN', MLPClassifier(hidden_layer_sizes=(64, 64), max_iter=500, learning_rate_init=0.001, 
                           early_stopping=True, random_state=42))
 ]
 
-# Define meta-learner (final estimator)
+# Adjust StratifiedKFold based on the smallest class size
+class_counts = Counter(y_encoded)
+min_class_size = min(class_counts.values())
+n_splits = min(5, min_class_size)
+
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+# Cross-validation and hyperparameter tuning
+for (name, model), param_grid in zip(base_models, param_grids.values()):
+    print(f"\nTuning Hyperparameters for {name} Model...")
+    grid_search = GridSearchCV(model, param_grid, cv=cv, n_jobs=-1, scoring='accuracy', verbose=1)
+    grid_search.fit(x_train, y_train)
+    
+    best_model = grid_search.best_estimator_
+    print(f"Best Parameters for {name}: {grid_search.best_params_}")
+    
+    y_pred_cv = cross_val_predict(best_model, x_scaled, y_encoded, cv=cv)
+    
+    accuracy = accuracy_score(y_encoded, y_pred_cv)
+    precision = precision_score(y_encoded, y_pred_cv, average='weighted')
+    recall = recall_score(y_encoded, y_pred_cv, average='weighted')
+    f1 = f1_score(y_encoded, y_pred_cv, average='weighted')
+    
+    print(f"{name} Model Accuracy: {accuracy:.4f}")
+    print(f"{name} Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
+
+    # Confusion matrix plot
+    conf_matrix = confusion_matrix(y_encoded, y_pred_cv)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.title(f'Confusion Matrix for {name}')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.show()
+
+# Meta-learner and Stacking model
 meta_model = XGBClassifier()
+stacked_model = StackingClassifier(estimators=base_models, final_estimator=meta_model, cv=cv)
 
-# Define the stacking classifier
-stacked_model = StackingClassifier(estimators=base_models, final_estimator=meta_model, cv=StratifiedKFold(n_splits=5))
-
-# Train and evaluate the stacked model
-print("\nTraining Stacked Model...")
-
-# Cross-validation setup
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-# Store cross-validation results
-confusion_matrices = {}
-model_predictions = {}
-model_accuracies = {}
-
-# Create output directory
-output_dir = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/confusion_matrices/'
-os.makedirs(output_dir, exist_ok=True)
-
-# Train and evaluate the stacked model
-print(f"\nTraining Stacked Model...")
-y_pred = cross_val_predict(stacked_model, x_scaled, y_encoded, cv=cv)
-conf_matrix = confusion_matrix(y_encoded, y_pred)
-confusion_matrices["Stacked"] = conf_matrix
-
+# Cross-validation on stacked model
+y_pred_stacked_cv = cross_val_predict(stacked_model, x_scaled, y_encoded, cv=cv)
+conf_matrix_stacked = confusion_matrix(y_encoded, y_pred_stacked_cv)
 print(f"\nConfusion Matrix for Stacked Model:")
-print(conf_matrix)
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix_stacked, annot=True, fmt='d', cmap='Blues', cbar=False)
+plt.title('Confusion Matrix for Stacked Model')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.show()
 
-# Plot confusion matrix
-plot_confusion_matrix(conf_matrix, "Stacked", output_dir)
-
-# Train the stacked model on the full training set and predict on the test set
+# Final training on the stacked model
 stacked_model.fit(x_train, y_train)
 y_test_pred = stacked_model.predict(x_test)
 
-# Calculate accuracy
-accuracy = accuracy_score(y_test, y_test_pred)  # Ensure y_test is y_encoded
-print(f"Stacked Model Accuracy on Test Set: {accuracy:.4f}")
-
-# Store predictions and accuracies
-model_predictions["Stacked"] = y_test_pred
-model_accuracies["Stacked"] = accuracy
-
-# Precision, Recall, F1-Score
+# Stacked model evaluation on test set
+accuracy = accuracy_score(y_test, y_test_pred)
 precision = precision_score(y_test, y_test_pred, average='weighted')
 recall = recall_score(y_test, y_test_pred, average='weighted')
 f1 = f1_score(y_test, y_test_pred, average='weighted')
 
-print(f"Stacked Model Precision: {precision:.4f}")
-print(f"Stacked Model Recall: {recall:.4f}")
-print(f"Stacked Model F1-Score: {f1:.4f}")
+print(f"Stacked Model Test Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
 
-# ROC-AUC (if model supports probability estimation)
+# ROC-AUC for the stacked model
 if hasattr(stacked_model, "predict_proba"):
     y_proba = stacked_model.predict_proba(x_test)
     roc_auc = roc_auc_score(y_test, y_proba, multi_class="ovr", average='weighted')
@@ -160,7 +170,9 @@ else:
     print("Stacked Model does not support probability estimation for ROC-AUC.")
 
 # Save the stacked model
-save_model(stacked_model, "Stacked")
+def save_model(model, model_name):
+    with open(os.path.join(output_dir, f'{model_name}_model.pkl'), 'wb') as model_file:
+        pickle.dump(model, model_file)
 
 # Function to take user input for a new sample and return predictions
 def predict_new_sample(x_new, model):
@@ -169,8 +181,9 @@ def predict_new_sample(x_new, model):
 
     # Get predictions from the Stacked Model
     pred_model = model.predict(x_new_scaled)
-    print(f"Model Prediction: {label_encoder.inverse_transform(pred_model)}")
-
-# Example usage for prediction (you can replace this with actual user input)
-new_sample = [60, 20, 30, 75, 5.5, 90, 20]  # Example new input sample
-predict_new_sample(new_sample, stacked_model)
+    print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
+    
+save_model(stacked_model, 'stacked')
+# Example of user input (replace with real input as needed)
+user_input = [6.5, 7.0, 5.5, 6.2, 23 , 23]  # Example input, replace with actual features
+predict_new_sample(user_input, stacked_model)

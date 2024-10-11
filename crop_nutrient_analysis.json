@@ -1,0 +1,1124 @@
+[
+    {
+        "Crop": "apple",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "3.20",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "2.28",
+            "deviation": "10.24",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.11",
+            "deviation": "37.69",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.09",
+            "deviation": "2.00",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.04",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.00",
+            "deviation": "1.21",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "banana",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.27",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.01",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.05",
+            "deviation": "49.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.14",
+            "deviation": "4.07",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "1.03",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.07",
+            "deviation": "2.00",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "blackgram",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.98",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.47",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.24",
+            "deviation": "34.09",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.09",
+            "deviation": "4.04",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.04",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.32",
+            "deviation": "4.02",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "chickpea",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.09",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.21",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.92",
+            "deviation": "11.77",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.20",
+            "deviation": "2.33",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "1.62",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "coconut",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "2.02",
+            "deviation": "16.36",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.43",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "lebih",
+            "colour": "blue",
+            "value": "0.41",
+            "deviation": "11.93",
+            "satuan": "mg",
+            "action": "kurangi"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.12",
+            "deviation": "4.07",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.62",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "1.98",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "coffee",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.80",
+            "deviation": "16.34",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.26",
+            "deviation": "10.22",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.06",
+            "deviation": "10.27",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.22",
+            "deviation": "8.14",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.43",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.12",
+            "deviation": "1.99",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "cotton",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.77",
+            "deviation": "16.36",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.24",
+            "deviation": "10.22",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.56",
+            "deviation": "19.20",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.17",
+            "deviation": "4.03",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.07",
+            "deviation": "0.41",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "1.63",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "grapes",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.82",
+            "deviation": "16.40",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.47",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "lebih",
+            "colour": "blue",
+            "value": "0.89",
+            "deviation": "37.74",
+            "satuan": "mg",
+            "action": "kurangi"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.15",
+            "deviation": "1.62",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.03",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.83",
+            "deviation": "13.54",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "jute",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.40",
+            "deviation": "16.35",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.86",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "18.41",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.17",
+            "deviation": "7.77",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "1.59",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "kidneybeans",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.25",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.54",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.05",
+            "deviation": "28.51",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.26",
+            "deviation": "2.81",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.00",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.19",
+            "deviation": "3.92",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "lentil",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "2.27",
+            "deviation": "16.34",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.36",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.41",
+            "deviation": "28.66",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.71",
+            "deviation": "4.01",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "0.62",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.44",
+            "deviation": "4.86",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "maize",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.76",
+            "deviation": "16.36",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.06",
+            "deviation": "10.22",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.21",
+            "deviation": "20.18",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.21",
+            "deviation": "7.98",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.82",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.46",
+            "deviation": "3.47",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "mango",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.93",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.32",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.08",
+            "deviation": "10.27",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.12",
+            "deviation": "4.06",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.03",
+            "deviation": "0.61",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.09",
+            "deviation": "3.67",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "mothbeans",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.56",
+            "deviation": "16.34",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.49",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.23",
+            "deviation": "19.04",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.51",
+            "deviation": "10.19",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.39",
+            "deviation": "0.64",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.18",
+            "deviation": "3.26",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "mungbean",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.01",
+            "deviation": "16.34",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.28",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.13",
+            "deviation": "19.13",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.45",
+            "deviation": "4.07",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "0.66",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.08",
+            "deviation": "1.18",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "muskmelon",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.32",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.28",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "lebih",
+            "colour": "blue",
+            "value": "0.08",
+            "deviation": "18.44",
+            "satuan": "mg",
+            "action": "kurangi"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.23",
+            "deviation": "2.02",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.61",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.19",
+            "deviation": "1.19",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "orange",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.58",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.55",
+            "deviation": "10.22",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "10.80",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.21",
+            "deviation": "2.03",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.41",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.14",
+            "deviation": "10.16",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "papaya",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.88",
+            "deviation": "15.92",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.95",
+            "deviation": "9.81",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.04",
+            "deviation": "10.49",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.28",
+            "deviation": "2.00",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.04",
+            "deviation": "0.61",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.46",
+            "deviation": "8.44",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "pigeonpeas",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.73",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.77",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "kurang",
+            "colour": "red",
+            "value": "0.29",
+            "deviation": "24.48",
+            "satuan": "mg",
+            "action": "tambahkan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.86",
+            "deviation": "16.07",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.42",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.19",
+            "deviation": "7.62",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "pomegranate",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.87",
+            "deviation": "16.34",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "1.25",
+            "deviation": "10.22",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "lebih",
+            "colour": "blue",
+            "value": "0.21",
+            "deviation": "14.79",
+            "satuan": "mg",
+            "action": "kurangi"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.22",
+            "deviation": "4.03",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.02",
+            "deviation": "0.63",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.52",
+            "deviation": "2.82",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "rice",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.11",
+            "deviation": "15.92",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.58",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.13",
+            "deviation": "10.82",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.08",
+            "deviation": "1.98",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.63",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.05",
+            "deviation": "2.81",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    },
+    {
+        "Crop": "watermelon",
+        "N": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.42",
+            "deviation": "16.33",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "P": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.50",
+            "deviation": "10.21",
+            "satuan": "mg",
+            "action": "pertahankan"
+        },
+        "K": {
+            "class": "lebih",
+            "colour": "blue",
+            "value": "0.28",
+            "deviation": "18.50",
+            "satuan": "mg",
+            "action": "kurangi"
+        },
+        "Humidity": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.13",
+            "deviation": "4.06",
+            "satuan": "%",
+            "action": "pertahankan"
+        },
+        "ph": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "0.62",
+            "satuan": "pH",
+            "action": "pertahankan"
+        },
+        "Temperature": {
+            "class": "cukup",
+            "colour": "green",
+            "value": "0.01",
+            "deviation": "1.20",
+            "satuan": "\u00b0C",
+            "action": "pertahankan"
+        }
+    }
+]
