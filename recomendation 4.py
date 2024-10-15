@@ -1,28 +1,61 @@
 import os
+import sys
 import pandas as pd
 import pickle
 import json
 import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
-# Constants
-MODEL_FILE = 'scaler_label_encoder.pkl'  # File to save scaler and label encoder
+DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation .csv'
+MODEL_FILE = 'scaler.pkl'
+MODEL_FILE = 'label_encoder.pkl'
 
-# Load the stacked model
-def load_model(model_name):
-    with open(os.path.join('output', f'{model_name}_model.pkl'), 'rb') as f:
+# Function to load the dataset
+def load_dataset(path):
+    if not os.path.exists(path):
+        print(f"File not found at: {path}")
+        sys.exit()
+    return pd.read_csv(path)
+
+# Function to preprocess data
+def preprocess_data(data):
+    features = data[['N', 'P', 'K', 'Temperature', 'Humidity', 'ph']]
+    labels = data['label']
+    return features, labels
+
+# Function to save models
+def save_model(model, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f)
+
+# Function to load models
+def load_model(filename):
+    with open(filename, 'rb') as f:
         return pickle.load(f)
 
-stacked_model = load_model("Stacked")
+# Load the dataset
+crop_data = load_dataset(DATASET_PATH)
+
+# Preprocess the data
+features, labels = preprocess_data(crop_data)
+
+# Create and fit the scaler and label encoder
+scaler = StandardScaler().fit(features)
+label_encoder = LabelEncoder().fit(labels)
+
+# Save the scaler and label encoder
+save_model(scaler, 'scaler.pkl')
+save_model(label_encoder, 'label_encoder.pkl')
 
 # Load the scaler and label encoder
-with open('scaler_label_encoder.pkl', 'rb') as f:
-    scaler, label_encoder = pickle.load(f)
+scaler = load_model('scaler.pkl')
+label_encoder = load_model('label_encoder.pkl')
 
-# Load the crop nutrient data
-with open('crop_nutrient_analysis.json', 'r') as f:
-    all_crop_data = json.load(f)
-# Data dictionary defining the dataset
+# Load the stacked model
+stacked_model = load_model(os.path.join('output', 'stacked_model.pkl'))
+
+    
+# Integrated crop data
 data = {
     'label': ['apple', 'banana', 'blackgram', 'chickpea', 'coconut', 'coffee', 'cotton', 'grapes', 'jute', 'kidneybeans', 'lentil', 'maize', 'mango', 'mothbeans', 'mungbean', 'muskmelon', 'orange', 'papaya', 'pigeonpeas', 'pomegranate', 'rice', 'watermelon'],
     'N_mean': [20.80, 100.23, 40.02, 40.09, 21.98, 101.20, 117.77, 23.18, 78.40, 20.75, 18.77, 77.76, 20.07, 21.44, 20.99, 100.32, 19.58, 49.88, 20.73, 18.87, 79.89, 99.42],
@@ -49,101 +82,109 @@ data = {
     'Temperature_median': [22.628290, 27.443333, 29.655515, 18.878291, 27.385317, 25.656643, 23.964997, 23.018528, 24.971106, 19.924037, 24.946835, 22.844456, 31.300223, 28.370863, 28.441673, 28.851775, 22.901055, 33.262870, 28.931707, 22.354425, 23.734837, 25.603965],
     'Temperature_min': [21.036527, 25.010185, 25.097374, 17.024985, 25.008724, 23.059519, 22.000851, 8.825675, 23.094338, 15.330426, 18.064861, 18.041855, 27.003155, 24.018254, 27.014704, 27.024151, 10.010813, 23.012402, 18.319104, 18.071330, 20.045414, 24.043558],
     'Temperature_max': [23.996862, 29.908885, 34.946616, 20.995022, 29.869083, 27.923744, 25.992374, 41.948657, 26.985822, 24.923601, 29.944139, 26.549864, 35.990097, 31.999286, 29.914544, 29.943492, 34.906653, 43.675493, 36.977944, 24.962732, 26.929951, 26.986037]
-}
+ }
 
-# Create DataFrame
+
+# Convert data to DataFrame
 crop_df = pd.DataFrame(data)
 
-print("Columns in the DataFrame:", crop_df.columns)
-
-# Saving the DataFrame to a CSV (if necessary)
-crop_df.to_csv('updated_crop_recommendation.csv', index=False)
-
-def determine_class(value, min_val, max_val):
+def determine_class(value, min_val, max_val, mean_val):
     if value < min_val:
         return "kurang"
     elif value > max_val:
         return "lebih"
     else:
-        return "cukup"
+        deviation = abs(value - mean_val) / mean_val
+        if deviation <= 0.1:  # Within 10% of mean
+            return "cukup"
+        elif value < mean_val:
+            return "sedikit kurang"
+        else:
+            return "sedikit lebih"
 
 def determine_color(class_val):
     if class_val == "kurang":
         return "red"
     elif class_val == "lebih":
         return "blue"
-    else:
+    elif class_val == "cukup":
         return "green"
+    else:
+        return "yellow"
 
 def determine_action(class_val):
-    if class_val == "kurang":
-        return "tambahkan"
-    elif class_val == "lebih":
-        return "kurangi"
+    if class_val == "kurang" or class_val == "sedikit kurang":
+        return "increase"
+    elif class_val == "lebih" or class_val == "sedikit lebih":
+        return "decrease"
     else:
-        return "pertahankan"
+        return "maintain"
 
-def process_crop_data(row):
-    crop_data = {
-        "Crop": row['label'],
+def process_crop_data(crop_name, user_input):
+    crop_data = crop_df[crop_df['label'] == crop_name].iloc[0]
+    
+    if crop_data.empty:
+        return f"No data available for crop: {crop_name}"
+    
+    result = {
+        "Crop": crop_name,
     }
     
-    for nutrient in ['N', 'P', 'K']:
-        mean_val = row[f'{nutrient}_mean']
-        median_val = row[f'{nutrient}_median']
-        min_val = row[f'{nutrient}_min']
-        max_val = row[f'{nutrient}_max']
+    factors = ['N', 'P', 'K', 'Temperature', 'Humidity', 'ph']
+    for factor in factors:
+        user_value = user_input[factor]
+        mean_val = crop_data[f'{factor}_mean']
+        min_val = crop_data[f'{factor}_min']
+        max_val = crop_data[f'{factor}_max']
         
-        class_val = determine_class(mean_val, min_val, max_val)
+        class_val = determine_class(user_value, min_val, max_val, mean_val)
         color = determine_color(class_val)
-        value = abs(mean_val - median_val)
-        deviation = np.std([min_val, mean_val, max_val])
         action = determine_action(class_val)
         
-        crop_data[nutrient] = {
+        deviation = abs(user_value - mean_val) / mean_val
+        
+        result[factor] = {
             "class": class_val,
             "colour": color,
-            "value": f"{value:.2f}",
+            "value": f"{user_value:.2f}",
             "deviation": f"{deviation:.2f}",
-            "satuan": "mg",
+            "satuan": "mg" if factor in ['N', 'P', 'K'] else ("%" if factor == "Humidity" else ("pH" if factor == "ph" else "°C")),
             "action": action
         }
     
-    for factor in ['Humidity', 'ph', 'Temperature']:
-        mean_val = row[f'{factor}_mean']
-        median_val = row[f'{factor}_median']
-        min_val = row[f'{factor}_min']
-        max_val = row[f'{factor}_max']
-        
-        class_val = determine_class(mean_val, min_val, max_val)
-        color = determine_color(class_val)
-        value = abs(mean_val - median_val)
-        deviation = np.std([min_val, mean_val, max_val])
-        action = determine_action(class_val)
-        
-        unit = "%" if factor == "Humidity" else ("pH" if factor == "ph" else "°C")
-        
-        crop_data[factor] = {
-            "class": class_val,
-            "colour": color,
-            "value": f"{value:.2f}",
-            "deviation": f"{deviation:.2f}",
-            "satuan": unit,
-            "action": action
-        }
+    return result
+
+def predict_and_recommend(input_data):
+    # Prepare input data for prediction
+    input_features = np.array([[
+        input_data['N'], input_data['P'], input_data['K'],
+        input_data['Temperature'], input_data['Humidity'], input_data['ph']
+    ]])
     
-    return crop_data
+    # Scale the input data
+    scaled_input = scaler.transform(input_features)
+    
+    # Predict the crop
+    predicted_crop_label = stacked_model.predict(scaled_input)
+    predicted_crop = label_encoder.inverse_transform(predicted_crop_label)[0]
+    
+    # Generate recommendations
+    recommendations = process_crop_data(predicted_crop, input_data)
+    
+    return recommendations
 
-# Process all crops
-all_crop_data = [process_crop_data(row) for _, row in crop_df.iterrows()]
+# Example usage
+user_input = {
+    'N': 90,
+    'P': 42,
+    'K': 43,
+    'Temperature': 20.87,
+    'Humidity': 82.00,
+    'ph': 6.5
+}
 
-# Convert to JSON
-json_output = json.dumps(all_crop_data, indent=4)
+# Predict the crop and provide recommendations
+recommendations = predict_and_recommend(user_input)
 
-# Print the JSON output
-print(json_output)
-
-# Optionally, save to a file
-with open('crop_nutrient_analysis.json', 'w') as f:
-    json.dump(all_crop_data, f, indent=4)
-
+# Print the result
+print(json.dumps(recommendations, indent=2))

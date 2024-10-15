@@ -26,7 +26,9 @@ if not os.path.exists(DATASET_PATH):
     sys.exit()
 crop_data = pd.read_csv(DATASET_PATH)
 
-# Prepare the dataset
+# Prepare the dataset by removing 'rainfall'
+crop_data = crop_data.drop(['Rainfall'], axis=1)
+
 y = crop_data['label'].astype(str)
 x = crop_data.drop(['label'], axis=1)
 
@@ -38,7 +40,7 @@ y_encoded = label_encoder.fit_transform(y)
 scaler = StandardScaler()
 x_scaled = scaler.fit_transform(x)
 
-# --- Data Visualization ---
+# --- Data Visualization --- 
 # 1. Checking for missing data
 missing_data = crop_data.isnull().sum()
 print("Missing Data:\n", missing_data)
@@ -47,7 +49,7 @@ print("Missing Data:\n", missing_data)
 summary_stats = crop_data.describe()
 print("\nSummary Statistics:\n", summary_stats)
 
-# 3. Distribution of numerical features
+# 3. Distribution of numerical features (excluding 'rainfall')
 plt.figure(figsize=(15, 10))
 num_columns = len(crop_data.columns) - 1
 num_rows = (num_columns + 2) // 3
@@ -182,8 +184,8 @@ def predict_new_sample(x_new, model):
     # Get predictions from the Stacked Model
     pred_model = model.predict(x_new_scaled)
     print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
-    
+
 save_model(stacked_model, 'stacked')
 # Example of user input (replace with real input as needed)
-user_input = [6.5, 7.0, 5.5, 6.2, 23 , 23]  # Example input, replace with actual features
+user_input = [6.5, 7.0, 5.5, 6.2, 23, 44]  # Example input, replace with actual features
 predict_new_sample(user_input, stacked_model)
