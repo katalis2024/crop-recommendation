@@ -154,6 +154,21 @@ plt.show()
 stacked_model.fit(x_train, y_train)
 y_test_pred = stacked_model.predict(x_test)
 
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_test_pred))
+
+# Calculate accuracy per crop class
+unique_classes = np.unique(y_test)
+class_accuracies = {}
+for cls in unique_classes:
+    # Mendapatkan indeks untuk setiap kelas (benar dan prediksi)
+    idx = np.where(y_test == cls)
+    class_accuracies[cls] = accuracy_score(y_test[idx], y_test_pred[idx])
+
+print("\nAccuracy per Crop Class:")
+for crop_class, accuracy in class_accuracies.items():
+    print(f"{crop_class}: {accuracy:.2f}")
+
 # Stacked model evaluation on test set
 accuracy = accuracy_score(y_test, y_test_pred)
 precision = precision_score(y_test, y_test_pred, average='weighted')
@@ -176,16 +191,26 @@ def save_model(model, model_name):
     with open(os.path.join(output_dir, f'{model_name}_model.pkl'), 'wb') as model_file:
         pickle.dump(model, model_file)
 
-# Function to take user input for a new sample and return predictions
-def predict_new_sample(x_new, model):
-    # Scale the new input sample
-    x_new_scaled = scaler.transform([x_new])
+# Function to take user input for multiple new samples and return predictions
+def predict_new_samples(x_new_list, model):
+    # Iterate over each new input sample
+    for i, x_new in enumerate(x_new_list):
+        # Scale the new input sample
+        x_new_scaled = scaler.transform([x_new])
 
-    # Get predictions from the Stacked Model
-    pred_model = model.predict(x_new_scaled)
-    print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
+        # Get predictions from the Stacked Model
+        pred_model = model.predict(x_new_scaled)
+        predicted_crop = label_encoder.inverse_transform(pred_model)
+        
+        # Output the result for each sample
+        print(f"Sample {i+1}: Input = {x_new}")
+        print(f"Predicted Crop: {predicted_crop[0]}")
+        print("-" * 30)
 
-save_model(stacked_model, 'stacked')
-# Example of user input (replace with real input as needed)
-user_input = [6.5, 7.0, 5.5, 6.2, 23, 44]  # Example input, replace with actual features
-predict_new_sample(user_input, stacked_model)
+# List input untuk kadar N, P, K, kelembapan, suhu, dan pH
+user_inputs = [
+    [117.77, 46.24, 19.56, 23.99, 79.84, 6.91],  # Cotton
+    ]
+
+# Make predictions for all user inputs
+predict_new_samples(user_inputs, stacked_model)

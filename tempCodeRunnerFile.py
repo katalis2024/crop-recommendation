@@ -1,191 +1,161 @@
 import os
-import sys
-import numpy as np
 import pandas as pd
 import pickle
-from collections import Counter
-from sklearn.metrics import (accuracy_score, confusion_matrix, precision_score, recall_score, 
-                             f1_score, roc_auc_score)
-from sklearn.model_selection import (train_test_split, cross_val_predict, 
-                                     StratifiedKFold, GridSearchCV)
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier, 
-                              StackingClassifier)
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
-from xgboost import XGBClassifier
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+import json
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
-# Load the dataset
-DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation .csv'
-if not os.path.exists(DATASET_PATH):
-    print(f"File not found at: {DATASET_PATH}")
-    sys.exit()
-crop_data = pd.read_csv(DATASET_PATH)
+class CropPredictor:
+    def __init__(self):
+        # [Previous __init__ code remains the same]
+        self.crop_df = None
+        self.scaler = None
+        self.label_encoder = None
+        self.stacked_model = None
+        self.statistics = None
+        
+        # Integrated crop data
+        self.crop_data = {
+            'label': ['apple', 'banana', 'blackgram', 'chickpea', 'coconut', 'coffee', 'cotton', 'grapes', 'jute', 'kidneybeans', 'lentil', 'maize', 'mango', 'mothbeans', 'mungbean', 'muskmelon', 'orange', 'papaya', 'pigeonpeas', 'pomegranate', 'rice', 'watermelon'],
+            # [Rest of the crop_data dictionary remains the same]
+            'N_mean': [20.80, 100.23, 40.02, 40.09, 21.98, 101.20, 117.77, 23.18, 78.40, 20.75, 18.77, 77.76, 20.07, 21.44, 20.99, 100.32, 19.58, 49.88, 20.73, 18.87, 79.89, 99.42],
+            'N_median': [24.0, 100.5, 41.0, 39.0, 24.0, 103.0, 117.0, 24.0, 78.0, 22.0, 16.5, 76.0, 21.0, 22.0, 22.0, 100.0, 19.0, 49.0, 20.0, 18.0, 80.0, 99.0],
+            'N_min': [0, 80, 20, 20, 0, 80, 100, 0, 60, 0, 0, 60, 0, 0, 0, 80, 0, 31, 0, 0, 60, 80],
+            'N_max': [40, 120, 60, 60, 40, 120, 140, 40, 100, 40, 40, 100, 40, 40, 40, 120, 40, 70, 40, 40, 99, 120],
+            'P_mean': [134.22, 82.01, 67.47, 67.79, 16.93, 28.74, 46.24, 132.53, 46.86, 67.54, 68.36, 48.44, 27.18, 48.01, 47.28, 17.72, 16.55, 59.05, 67.73, 18.75, 47.58, 17.00],
+            'P_median': [136.5, 81.0, 67.0, 68.0, 15.5, 29.0, 46.0, 133.0, 46.0, 67.0, 68.0, 48.5, 27.5, 48.5, 47.0, 18.0, 16.0, 60.0, 69.5, 20.0, 47.0, 17.5],
+            'P_min': [120, 70, 55, 55, 5, 15, 35, 120, 35, 55, 55, 35, 15, 35, 35, 5, 5, 46, 55, 5, 35, 5],
+            'P_max': [145, 95, 80, 80, 30, 40, 60, 145, 60, 80, 80, 60, 40, 60, 60, 30, 30, 70, 80, 30, 60, 30],
+            'K_mean': [199.89, 50.05, 19.24, 79.92, 30.59, 29.94, 19.56, 200.11, 39.99, 20.05, 19.41, 19.79, 29.92, 20.23, 19.87, 50.08, 10.01, 50.04, 20.29, 40.21, 39.87, 50.22],
+            'K_median': [200.0, 50.0, 19.0, 79.0, 31.0, 30.0, 19.0, 201.0, 40.0, 20.0, 19.0, 20.0, 30.0, 20.0, 20.0, 50.0, 10.0, 50.0, 20.0, 40.0, 40.0, 50.5],
+            'K_min': [120, 0, 0, 55, 5, 15, 19, 120, 15, 19, 19, 15, 15, 19, 19, 5, 5, 46, 55, 5, 35, 5],
+            'K_max': [200, 120, 80, 80, 30, 40, 60, 200, 60, 80, 80, 60, 40, 60, 60, 30, 30, 70, 80, 30, 60, 30],
+            'Temperature_mean': [22.630942, 27.376798, 29.973340, 18.872847, 27.409892, 25.540477, 23.988958, 23.849575, 24.958376, 20.115085, 24.509052, 22.389204, 31.208770, 28.194920, 28.525775, 28.663066, 22.765725, 33.723859, 27.741762, 21.837842, 23.689332, 25.591767],
+            'Temperature_median': [22.628290, 27.443333, 29.655515, 18.878291, 27.385317, 25.656643, 23.964997, 23.018528, 24.971106, 19.924037, 24.946835, 22.844456, 31.300223, 28.370863, 28.441673, 28.851775, 22.901055, 33.262870, 28.931707, 22.354425, 23.734837, 25.603965],
+            'Temperature_min': [21.036527, 25.010185, 25.097374, 17.024985, 25.008724, 23.059519, 22.000851, 8.825675, 23.094338, 15.330426, 18.064861, 18.041855, 27.003155, 24.018254, 27.014704, 27.024151, 10.010813, 23.012402, 18.319104, 18.071330, 20.045414, 24.043558],
+            'Temperature_max': [23.996862, 29.908885, 34.946616, 20.995022, 29.869083, 27.923744, 25.992374, 41.948657, 26.985822, 24.923601, 29.944139, 26.549864, 35.990097, 31.999286, 29.914544, 29.943492, 34.906653, 43.675493, 36.977944, 24.962732, 26.929951, 26.986037],
+            'Humidity_mean': [92.33, 80.36, 65.12, 16.86, 94.84, 58.87, 79.84, 81.87, 79.64, 21.61, 64.80, 65.09, 50.16, 53.16, 85.50, 92.34, 92.17, 92.40, 48.06, 90.13, 82.27, 85.16],
+            'Humidity_median': [92.42, 80.22, 65.03, 16.66, 94.96, 57.65, 80.01, 81.72, 79.47, 21.35, 64.09, 65.30, 50.28, 53.67, 85.95, 92.11, 91.96, 92.68, 47.20, 89.91, 82.19, 85.03],
+            'Humidity_min': [90.03, 75.03, 60.07, 14.26, 90.02, 50.05, 75.01, 80.02, 70.88, 18.09, 60.09, 55.28, 45.02, 40.01, 80.03, 90.02, 90.01, 90.04, 30.40, 85.13, 80.12, 80.03],
+            'Humidity_max': [94.92, 84.98, 69.96, 19.97, 99.98, 69.95, 84.88, 83.98, 89.89, 24.97, 69.92, 74.83, 54.96, 64.96, 89.99, 94.96, 94.96, 94.94, 69.69, 94.99, 84.97, 89.98],
+            'ph_mean': [5.93, 5.98, 7.13, 7.34, 5.98, 6.79, 6.91, 6.03, 6.73, 5.75, 6.93, 6.25, 5.77, 6.83, 6.72, 6.36, 7.02, 6.74, 5.79, 6.43, 6.43, 6.50],
+            'ph_median': [5.89, 5.99, 7.17, 7.36, 5.99, 6.80, 6.84, 6.00, 6.71, 5.75, 6.95, 6.26, 5.74, 7.22, 6.70, 6.35, 7.01, 6.78, 5.80, 6.41, 6.44, 6.51],
+            'ph_min': [5.00, 5.00, 6.00, 6.50, 5.00, 6.00, 6.50, 5.00, 5.50, 5.00, 6.00, 5.00, 5.00, 6.50, 6.50, 5.50, 6.50, 6.00, 5.50, 6.00, 6.00, 6.00],
+            'ph_max': [7.00, 7.50, 8.00, 8.50, 6.50, 7.00, 7.50, 7.00, 7.50, 7.00, 7.50, 7.00, 6.50, 8.00, 8.00, 7.00, 7.50, 7.50, 6.50, 7.50, 7.50, 7.50]
+        }
+        self.crop_df = pd.DataFrame(self.crop_data)
 
-# Prepare the dataset by removing 'rainfall'
-crop_data = crop_data.drop(['Rainfall'], axis=1)
+    # [Previous methods remain the same]
+    def determine_class(self, value, min_val, max_val, mean_val):
+        if value < min_val:
+            return "kurang"
+        elif value > max_val:
+            return "lebih"
+        else:
+            deviation = abs(value - mean_val) / mean_val
+            if deviation <= 0.1:
+                return "cukup"
+            elif value < mean_val:
+                return "sedikit kurang"
+            else:
+                return "sedikit lebih"
 
-y = crop_data['label'].astype(str)
-x = crop_data.drop(['label'], axis=1)
+    def determine_color(self, class_val):
+        if class_val == "kurang":
+            return "red"
+        elif class_val == "lebih":
+            return "blue"
+        elif class_val == "cukup":
+            return "green"
+        else:
+            return "yellow"
 
-# Encode labels
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
+    def determine_action(self, class_val):
+        if class_val == "kurang" or class_val == "sedikit kurang":
+            return "increase"
+        elif class_val == "lebih" or class_val == "sedikit lebih":
+            return "decrease"
+        else:
+            return "maintain"
 
-# Feature scaling
-scaler = StandardScaler()
-x_scaled = scaler.fit_transform(x)
+    def process_crop_data(self, crop_name, user_input):
+        crop_data = self.crop_df[self.crop_df['label'] == crop_name].iloc[0]
+        
+        result = {
+            "Crop": crop_name,
+        }
+        
+        factors = ['N', 'P', 'K', 'Temperature', 'Humidity', 'ph']
+        for factor in factors:
+            user_value = user_input[factor]
+            mean_val = crop_data[f'{factor}_mean']
+            min_val = crop_data[f'{factor}_min']
+            max_val = crop_data[f'{factor}_max']
+            
+            class_val = self.determine_class(user_value, min_val, max_val, mean_val)
+            color = self.determine_color(class_val)
+            action = self.determine_action(class_val)
+            
+            deviation = abs(user_value - mean_val) / mean_val
+            
+            result[factor] = {
+                "class": class_val,
+                "colour": color,
+                "value": f"{user_value:.2f}",
+                "deviation": f"{deviation:.2f}",
+                "satuan": "mg" if factor in ['N', 'P', 'K'] else ("%" if factor == "Humidity" else ("pH" if factor == "ph" else "°C")),
+                "action": action
+            }
+        
+        return result
 
-# --- Data Visualization --- 
-# 1. Checking for missing data
-missing_data = crop_data.isnull().sum()
-print("Missing Data:\n", missing_data)
+    def predict_and_recommend(self, input_data):
+        input_features = np.array([[
+            input_data['N'], input_data['P'], input_data['K'],
+            input_data['Temperature'], input_data['Humidity'], input_data['ph']
+        ]])
+        
+        scaled_input = self.scaler.transform(input_features)
+        predicted_crop_label = self.stacked_model.predict(scaled_input)
+        predicted_crop = self.label_encoder.inverse_transform(predicted_crop_label)[0]
+        
+        recommendations = self.process_crop_data(predicted_crop, input_data)
+        return recommendations
 
-# 2. Summary statistics
-summary_stats = crop_data.describe()
-print("\nSummary Statistics:\n", summary_stats)
-
-# 3. Distribution of numerical features (excluding 'rainfall')
-plt.figure(figsize=(15, 10))
-num_columns = len(crop_data.columns) - 1
-num_rows = (num_columns + 2) // 3
-for i, column in enumerate(crop_data.columns[:-1], 1):  # Exclude 'label'
-    plt.subplot(num_rows, 3, i)
-    sns.histplot(crop_data[column], kde=True)
-    plt.title(f'Distribution of {column}')
-plt.tight_layout()
-plt.show()
-
-# Correlation Matrix
-def plot_correlation_matrix(data):
-    plt.figure(figsize=(10, 8))
-    corr_matrix = data.corr()
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, linewidths=0.5)
-    plt.title('Correlation Matrix')
-    plt.tight_layout()
-    plt.show()
-
-plot_correlation_matrix(crop_data.drop('label', axis=1))
-
-# Output directory for saving models
-output_dir = "output"
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-# Splitting dataset
-x_train, x_test, y_train, y_test = train_test_split(x_scaled, y_encoded, test_size=0.2, random_state=42)
-
-# Parameter grids for each model
-param_grids = {
-    'KNN': {'n_neighbors': [3, 5, 7, 9], 'weights': ['uniform', 'distance']},
-    'DT': {'max_depth': [None, 5, 10, 15], 'min_samples_split': [2, 5, 10]},
-    'RFC': {'n_estimators': [50, 100, 150], 'max_depth': [None, 5, 10], 'min_samples_split': [2, 5, 10]},
-    'GBC': {'n_estimators': [50, 100, 150], 'learning_rate': [0.01, 0.1, 0.5], 'max_depth': [3, 5, 7]},
-    'SVM': {'C': [0.1, 1, 10], 'gamma': ['scale', 'auto']},
-    'ANN': {'hidden_layer_sizes': [(50,), (100,), (50, 50)], 'activation': ['relu', 'tanh']}
-}
-
-# Base models for stacking
-base_models = [
-    ('KNN', KNeighborsClassifier()),
-    ('DT', DecisionTreeClassifier()),
-    ('RFC', RandomForestClassifier()),
-    ('GBC', GradientBoostingClassifier()),
-    ('SVM', SVC(kernel='rbf', probability=True, random_state=42)),
-    ('ANN', MLPClassifier(hidden_layer_sizes=(64, 64), max_iter=500, learning_rate_init=0.001, 
-                          early_stopping=True, random_state=42))
-]
-
-# Adjust StratifiedKFold based on the smallest class size
-class_counts = Counter(y_encoded)
-min_class_size = min(class_counts.values())
-n_splits = min(5, min_class_size)
-
-cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-
-# Cross-validation and hyperparameter tuning
-for (name, model), param_grid in zip(base_models, param_grids.values()):
-    print(f"\nTuning Hyperparameters for {name} Model...")
-    grid_search = GridSearchCV(model, param_grid, cv=cv, n_jobs=-1, scoring='accuracy', verbose=1)
-    grid_search.fit(x_train, y_train)
+def create_and_save_predictor():
+    """Create and save the complete predictor object"""
+    predictor = CropPredictor()
     
-    best_model = grid_search.best_estimator_
-    print(f"Best Parameters for {name}: {grid_search.best_params_}")
+    # Load the individual models
+    predictor.load_models('scaler.pkl', 'label_encoder.pkl', os.path.join('output', 'stacked_model.pkl'))
     
-    y_pred_cv = cross_val_predict(best_model, x_scaled, y_encoded, cv=cv)
+    # Save the complete predictor object
+    with open('complete_crop_predictor.pkl', 'wb') as f:
+        pickle.dump(predictor, f)
     
-    accuracy = accuracy_score(y_encoded, y_pred_cv)
-    precision = precision_score(y_encoded, y_pred_cv, average='weighted')
-    recall = recall_score(y_encoded, y_pred_cv, average='weighted')
-    f1 = f1_score(y_encoded, y_pred_cv, average='weighted')
+    return predictor
+
+def load_predictor():
+    """Load the complete predictor object"""
+    with open('complete_crop_predictor.pkl', 'rb') as f:
+        return pickle.load(f)
+
+# Example usage
+if __name__ == "__main__":
+    # Create and save the predictor
+    predictor = create_and_save_predictor()
     
-    print(f"{name} Model Accuracy: {accuracy:.4f}")
-    print(f"{name} Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
-
-    # Confusion matrix plot
-    conf_matrix = confusion_matrix(y_encoded, y_pred_cv)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.title(f'Confusion Matrix for {name}')
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.show()
-
-# Meta-learner and Stacking model
-meta_model = XGBClassifier()
-stacked_model = StackingClassifier(estimators=base_models, final_estimator=meta_model, cv=cv)
-
-# Cross-validation on stacked model
-y_pred_stacked_cv = cross_val_predict(stacked_model, x_scaled, y_encoded, cv=cv)
-conf_matrix_stacked = confusion_matrix(y_encoded, y_pred_stacked_cv)
-print(f"\nConfusion Matrix for Stacked Model:")
-plt.figure(figsize=(8, 6))
-sns.heatmap(conf_matrix_stacked, annot=True, fmt='d', cmap='Blues', cbar=False)
-plt.title('Confusion Matrix for Stacked Model')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.show()
-
-# Final training on the stacked model
-stacked_model.fit(x_train, y_train)
-y_test_pred = stacked_model.predict(x_test)
-
-# Stacked model evaluation on test set
-accuracy = accuracy_score(y_test, y_test_pred)
-precision = precision_score(y_test, y_test_pred, average='weighted')
-recall = recall_score(y_test, y_test_pred, average='weighted')
-f1 = f1_score(y_test, y_test_pred, average='weighted')
-
-print(f"Stacked Model Test Accuracy: {accuracy:.4f}")
-print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
-
-# ROC-AUC for the stacked model
-if hasattr(stacked_model, "predict_proba"):
-    y_proba = stacked_model.predict_proba(x_test)
-    roc_auc = roc_auc_score(y_test, y_proba, multi_class="ovr", average='weighted')
-    print(f"Stacked Model ROC-AUC: {roc_auc:.4f}")
-else:
-    print("Stacked Model does not support probability estimation for ROC-AUC.")
-
-# Save the stacked model
-def save_model(model, model_name):
-    with open(os.path.join(output_dir, f'{model_name}_model.pkl'), 'wb') as model_file:
-        pickle.dump(model, model_file)
-
-# Function to take user input for a new sample and return predictions
-def predict_new_sample(x_new, model):
-    # Scale the new input sample
-    x_new_scaled = scaler.transform([x_new])
-
-    # Get predictions from the Stacked Model
-    pred_model = model.predict(x_new_scaled)
-    print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
-
-save_model(stacked_model, 'stacked')
-# Example of user input (replace with real input as needed)
-user_input = [6.5, 7.0, 5.5, 6.2, 23, 44]  # Example input, replace with actual features
-predict_new_sample(user_input, stacked_model)
+    # Test the predictor with sample input
+    test_input = {
+        'N': 90,
+        'P': 42,
+        'K': 43,
+        'Temperature': 20.87,
+        'Humidity': 82.00,
+        'ph': 6.5
+    }
+    
+    # Make prediction
+    result = predictor.predict_and_recommend(test_input)
+    # Print the result
+print(json.dumps(result, indent=2))

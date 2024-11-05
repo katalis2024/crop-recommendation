@@ -1,25 +1,34 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import os
 import pickle
 import numpy as np
-import os
-from fastapi.middleware.cors import CORSMiddleware
-import traceback
-import pandas as pd
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-import matplotlib.pyplot as plt
-from matplotlib import colors as mcolors
 
+# Initialize FastAPI
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Define paths
+DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation.csv'
+OUTPUT_DIR = 'output'
 
+# Load the scaler and label encoder
+def load_model(file_path):
+    if os.path.isfile(file_path):
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+    else:
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+# Load models
+try:
+    scaler = load_model('scaler.pkl')
+    label_encoder = load_model('label_encoder.pkl')
+    model1 = load_model(os.path.join(OUTPUT_DIR, 'stacked_model.pkl'))
+    # model2 = load_model(os.path.join(OUTPUT_DIR, 'model2.pkl'))  # Load Model 2 for recommendation
+except FileNotFoundError as e:
+    raise HTTPException(status_code=500, detail=str(e))
+
+# Define input data model
 class CropInput(BaseModel):
     N: float
     P: float
@@ -28,122 +37,100 @@ class CropInput(BaseModel):
     Humidity: float
     ph: float
 
-class ModelOutput(BaseModel):
-    model1_output: str
-    model2_recommendation: str
-    recommendations: str
+# Define response model
+class ParameterDetail(BaseModel):
+    class_: str
+    colour: str
+    value: float
+    deviation: float
+    satuan: str
+    action: str
 
-def load_models():
-    models = {}
-    model_names = ["Stacked_model", "model2_model", "scaler", "label_encoder"]
-    model_dir = "C:\\Users\\ACER\\OneDrive - mail.unnes.ac.id\\katalis\\app\\modelfix"
-
-    for name in model_names:
-        model_path = os.path.join(model_dir, f"{name}.pkl")
-        if os.path.isfile(model_path):
-            with open(model_path, "rb") as file:
-                loaded_model = pickle.load(file)
-                models[name] = loaded_model
-                print(f"Successfully loaded {name} of type {type(models[name])}")
-        else:
-            raise FileNotFoundError(f"Model file not found: {model_path}")
-    return models
-
-models = load_models()
-
-def z_score(value, mean, std):
-    return (value - mean) / std
-
-def color_gradient(z):
-    norm = mcolors.Normalize(vmin=-3, vmax=3)
-    cmap = plt.cm.Blues_r
-    rgba = cmap(norm(z))
-    hex_color = mcolors.to_hex(rgba)
-    return hex_color
-
-def get_recommendation(N, P, K, Temperature, Humidity, ph, scaler, model, label_encoder, mean_values, std_values):
-    feature_cols = ["N", "P", "K", "Temperature", "Humidity", "ph"]
-    input_data = pd.DataFrame([[N, P, K, Temperature, Humidity, ph]], columns=feature_cols)
-
-    input_data_scaled = scaler.transform(input_data)
-
-    try:
-        prediction = model.predict(input_data_scaled)
-        predicted_label = label_encoder.inverse_transform([int(prediction[0])])[0]
-    except ValueError as e:
-        return f"Prediction error: {str(e)}"
-    except Exception as e:
-        return f"Error during prediction: {str(e)}"
-
-    recommendation = []
-    for parameter, value in zip(feature_cols, [N, P, K, Temperature, Humidity, ph]):
-        mean_value = mean_values[parameter]
-        std_value = std_values[parameter]
-        z = z_score(value, mean_value, std_value)
-        
-        if value < mean_value:
-            adjustment = mean_value - value
-            color = color_gradient(z)
-            recommendation.append(f"<span style='color:{color}'>Sarankan menambahkan {adjustment:.2f} untuk {parameter}.</span>")
-        elif value > mean_value:
-            adjustment = value - mean_value
-            color = color_gradient(z)
-            recommendation.append(f"<span style='color:{color}'>Sarankan mengurangi {adjustment:.2f} untuk {parameter}.</span>")
-    
-    recommendation.append(f"Tanaman yang disarankan: {predicted_label}")
-
-    return "\n".join(recommendation)
+class CropPredictionResponse(BaseModel):
+    Crop: str
+    N: ParameterDetail
+    P: ParameterDetail
+    K: ParameterDetail
+    Temperature: ParameterDetail
+    Humidity: ParameterDetail
+    ph: ParameterDetail
 
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to the Crop Recommendation API!"}
+async def root():
+    return {"message": "Hello World"}
 
-@app.post("/predict", response_model=ModelOutput)
-async def predict_crop(input_data: CropInput):
+# Prediction endpoint
+@app.post("/predict/", response_model=CropPredictionResponse)
+def predict_crop(input_data: CropInput):
     try:
+        # Prepare the input data for prediction
         input_features = np.array([[input_data.N, input_data.P, input_data.K,
-                                    input_data.Temperature, input_data.Humidity,
-                                    input_data.ph]])
+                                     input_data.Temperature, input_data.Humidity, input_data.ph]])
+        # Scale the input data
+        input_scaled = scaler.transform(input_features)
 
         # Model 1 Prediction
-        if "Stacked_model" not in models:
-            raise ValueError("Model 1 tidak tersedia.")
+        prediction1 = model1.predict(input_scaled)
+        predicted_crop = label_encoder.inverse_transform(prediction1)[0]
 
-        model1_output = models["Stacked_model"].predict(input_features)[0]
+        
+        response_data = CropPredictionResponse(
+            Crop=predicted_crop,
+            N=ParameterDetail(
+                class_="sedikit lebih",
+                colour="yellow",
+                value=90.00,
+                deviation=0.13,
+                satuan="mg",
+                action="decrease"
+            ),
+            P=ParameterDetail(
+                class_="sedikit kurang",
+                colour="yellow",
+                value=42.00,
+                deviation=0.12,
+                satuan="mg",
+                action="increase"
+            ),
+            K=ParameterDetail(
+                class_="cukup",
+                colour="green",
+                value=43.00,
+                deviation=0.08,
+                satuan="mg",
+                action="maintain"
+            ),
+            Temperature=ParameterDetail(
+                class_="sedikit kurang",
+                colour="yellow",
+                value=20.87,
+                deviation=0.12,
+                satuan="°C",
+                action="increase"
+            ),
+            Humidity=ParameterDetail(
+                class_="cukup",
+                colour="green",
+                value=82.00,
+                deviation=0.00,
+                satuan="%",
+                action="maintain"
+            ),
+            ph=ParameterDetail(
+                class_="cukup",
+                colour="green",
+                value=6.50,
+                deviation=0.01,
+                satuan="pH",
+                action="maintain"
+            )
+        )
 
-        # Model 2 Prediction
-        if "model2_model" not in models:
-            raise ValueError("Model 2 tidak tersedia.")
-
-        model2_input = np.array([[model1_output]])
-        model2_recommendation = models["model2_model"].predict(model2_input)[0]
-
-        # Calculate recommendations
-        mean_values = {
-            'N': 50.55, 'P': 53.36, 'K': 48.15, 'Temperature': 25.62,
-            'Humidity': 71.48, 'ph': 6.47
-        }
-
-        std_values = {
-            'N': 5.0, 'P': 5.0, 'K': 5.0, 'Temperature': 5.0,
-            'Humidity': 5.0, 'ph': 1.0
-        }
-
-        recommendations = get_recommendation(input_data.N, input_data.P, input_data.K,
-                                             input_data.Temperature, input_data.Humidity,
-                                             input_data.ph, models["scaler"], 
-                                             models["Stacked_model"], models["label_encoder"],
-                                             mean_values, std_values)
-
-        return ModelOutput(model1_output=str(model1_output),
-                           model2_recommendation=str(model2_recommendation),
-                           recommendations=recommendations)
-
+        return response_data
     except Exception as e:
-        traceback.print_exc()  # Print traceback for debugging
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
-
+# Run the application
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -172,6 +172,12 @@ def predict_and_recommend(input_data):
     recommendations = process_crop_data(predicted_crop, input_data)
     
     return recommendations
+# # Save the statistics dictionary
+# save_pickle(statistics, 'statistics.pkl')
+
+# Now load the saved statistics to verify
+loaded_statistics = load_model('statistics.pkl')
+print("Loaded Statistics:", loaded_statistics)
 
 # Example usage
 user_input = {
