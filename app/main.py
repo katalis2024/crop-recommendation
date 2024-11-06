@@ -8,16 +8,19 @@ import pandas as pd
 app = FastAPI()
 
 # Paths to the datasets
-TRAINING_DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation .csv'
+TRAINING_DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation.csv'
 PARAMETER_DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\Crop_Recommendation.csv'
-OUTPUT_DIR = 'output'
-
+OUTPUT_DIR = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app'
 
 # Load datasets
 try:
-    parameter_data = pd.read_csv(r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\Crop_Recommendation.csv')
+    parameter_data = pd.read_csv(PARAMETER_DATASET_PATH)
 except FileNotFoundError:
     raise HTTPException(status_code=500, detail="Parameter dataset file not found.")
+except pd.errors.EmptyDataError:
+    raise HTTPException(status_code=500, detail="Parameter dataset is empty.")
+except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Error loading parameter data: {e}")
 
 # Utility function to load models
 def load_model(file_path: str):
@@ -28,12 +31,11 @@ def load_model(file_path: str):
 
 # Load model and scaler files
 try:
-    scaler = load_model(r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\scaler_fixmodel.pkl')
-    label_encoder = load_model(r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\label_encoder_fixmodel.pkl')
-    model1 = load_model(os.path.join(OUTPUT_DIR, r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\SStacked_model.pkl'))
+    scaler = load_model(os.path.join(OUTPUT_DIR, 'scaler_fixmodel.pkl'))
+    label_encoder = load_model(os.path.join(OUTPUT_DIR, 'label_encoder_fixmodel.pkl'))
+    model1 = load_model(os.path.join(OUTPUT_DIR, 'SStacked_model.pkl'))
 except FileNotFoundError as e:
     raise HTTPException(status_code=500, detail=str(e))
-
 
 # Data models
 class CropInput(BaseModel):
@@ -82,24 +84,26 @@ def predict_crop(input_data: CropInput):
         input_features = np.array([[input_data.N, input_data.P, input_data.K,
                                     input_data.Temperature, input_data.Humidity, input_data.ph]])
         input_scaled = scaler.transform(input_features)
+        
+        # Model 1 prediction
         prediction1 = model1.predict(input_scaled)
         predicted_crop = label_encoder.inverse_transform(prediction1)[0]
 
-        # Retrieve parameters for predicted crop
+        # Check if predicted crop exists in parameter_data
         crop_row = parameter_data[parameter_data['label'] == predicted_crop]
         if crop_row.empty:
             raise HTTPException(status_code=404, detail=f"No data for crop '{predicted_crop}' in dataset.")
-        
-        # Fetching the values
+
+        # Retrieve parameter values
         try:
-            N_mean, N_min, N_max = crop_row[['N_mean', 'N_min', 'N_max']].values[0]
-            P_mean, P_min, P_max = crop_row[['P_mean', 'P_min', 'P_max']].values[0]
-            K_mean, K_min, K_max = crop_row[['K_mean', 'K_min', 'K_max']].values[0]
-            Temperature_mean, Temperature_min, Temperature_max = crop_row[['temperature_mean', 'temperature_min', 'temperature_max']].values[0]
-            Humidity_mean, Humidity_min, Humidity_max = crop_row[['Humidity_mean', 'Humidity_min', 'Humidity_max']].values[0]
-            ph_mean, ph_min, ph_max = crop_row[['ph_mean', 'ph_min', 'ph_max']].values[0]
+            N_mean, N_min, N_max = crop_row[['N_mean', 'N_min', 'N_max']].iloc[0]
+            P_mean, P_min, P_max = crop_row[['P_mean', 'P_min', 'P_max']].iloc[0]
+            K_mean, K_min, K_max = crop_row[['K_mean', 'K_min', 'K_max']].iloc[0]
+            Temperature_mean, Temperature_min, Temperature_max = crop_row[['temperature_mean', 'temperature_min', 'temperature_max']].iloc[0]
+            Humidity_mean, Humidity_min, Humidity_max = crop_row[['Humidity_mean', 'Humidity_min', 'Humidity_max']].iloc[0]
+            ph_mean, ph_min, ph_max = crop_row[['ph_mean', 'ph_min', 'ph_max']].iloc[0]
         except KeyError as e:
-            raise HTTPException(status_code=500, detail=f"Missing column: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Missing column in dataset: {str(e)}")
 
         # Categorize parameters
         N_class, N_colour, N_deviation = categorize_parameter(input_data.N, N_mean, N_min, N_max)
@@ -112,7 +116,7 @@ def predict_crop(input_data: CropInput):
         # Response assembly
         return CropPredictionResponse(
             model1_output=predicted_crop,
-            model2_recommendation=f"Recommended crop: {predicted_crop}",
+            model2_recommendation=f"Tanaman yang disarankan: {predicted_crop}",
             N=ParameterDetail(class_=N_class, colour=N_colour, value=input_data.N, deviation=N_deviation, satuan="mg", action="adjust" if N_class != "adequate" else "maintain"),
             P=ParameterDetail(class_=P_class, colour=P_colour, value=input_data.P, deviation=P_deviation, satuan="mg", action="adjust" if P_class != "adequate" else "maintain"),
             K=ParameterDetail(class_=K_class, colour=K_colour, value=input_data.K, deviation=K_deviation, satuan="mg", action="adjust" if K_class != "adequate" else "maintain"),

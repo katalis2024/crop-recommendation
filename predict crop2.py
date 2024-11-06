@@ -22,7 +22,7 @@ from sklearn.datasets import make_classification  # Added import for make_classi
 from sklearn.metrics import classification_report
 
 # Load the dataset
-DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation .csv'
+DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation.csv'
 if not os.path.exists(DATASET_PATH):
     print(f"File not found at: {DATASET_PATH}")
     sys.exit()

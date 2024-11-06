@@ -17,6 +17,8 @@ COPY . /app
 COPY ./scaler_fixmodel.pkl /app/scaler_fixmodel.pkl
 COPY ./label_encoder_fixmodel.pkl /app/label_encoder_fixmodel.pkl
 COPY ./SStacked_model.pkl /app/SStacked_model.pkl
+COPY ./data/Crop_Recommendation.csv /app/data/Crop_Recommendation.csv
+COPY ./data/Crop_Recommendation.csv /app/data/BackupCrop_Recommendation.csv
 
 # Expose the port the app runs on
 EXPOSE 8000
