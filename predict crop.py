@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the dataset
-DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation .csv'
+DATASET_PATH = 'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation .csv'
 if not os.path.exists(DATASET_PATH):
     print(f"File not found at: {DATASET_PATH}")
     sys.exit()
@@ -190,6 +190,12 @@ else:
 def save_model(model, model_name):
     with open(os.path.join(output_dir, f'{model_name}_model.pkl'), 'wb') as model_file:
         pickle.dump(model, model_file)
+
+# Save the scaler and label encoder
+def save_pickle_object(obj, obj_name):
+    with open(os.path.join(output_dir, f'{obj_name}_fixmodel.pkl'), 'wb') as obj_file:
+        pickle.dump(obj, obj_file)
+
 
 # Function to take user input for multiple new samples and return predictions
 def predict_new_samples(x_new_list, model):

@@ -22,7 +22,7 @@ from sklearn.datasets import make_classification  # Added import for make_classi
 from sklearn.metrics import classification_report
 
 # Load the dataset
-DATASET_PATH = 'C:/Users/ACER/OneDrive - mail.unnes.ac.id/katalis/BackupCrop_Recommendation .csv'
+DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation .csv'
 if not os.path.exists(DATASET_PATH):
     print(f"File not found at: {DATASET_PATH}")
     sys.exit()
@@ -41,6 +41,21 @@ y_encoded = label_encoder.fit_transform(y)
 # Feature scaling
 scaler = StandardScaler()
 x_scaled = scaler.fit_transform(x)
+
+# Define the output directory for saving pickle files
+output_dir = "output"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+  
+
+# Save the scaler and label encoder
+def save_pickle_object(obj, obj_name):
+    with open(os.path.join(output_dir, f'{obj_name}_fixmodel.pkl'), 'wb') as obj_file:
+        pickle.dump(obj, obj_file)
+
+# Save the scaler and label encoder
+save_pickle_object(scaler, 'scaler')
+save_pickle_object(label_encoder, 'label_encoder')
 
 # Data Visualization
 # ... (keep existing visualization code)
@@ -293,6 +308,7 @@ def save_model(model, model_name):
     with open(os.path.join(output_dir, f'{model_name}_model.pkl'), 'wb') as model_file:
         pickle.dump(model, model_file)
 
+
 # Function to take user input for a new sample and return predictions
 def predict_new_sample(x_new, model):
     # Scale the new input sample
@@ -302,7 +318,7 @@ def predict_new_sample(x_new, model):
     pred_model = model.predict(x_new_scaled)
     print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
 
-save_model(stacked_model, 'stacked')
+save_model(stacked_model, 'SStacked')
 
 # List input untuk kadar N, P, K, kelembapan, suhu, dan pH
 user_inputs = [
