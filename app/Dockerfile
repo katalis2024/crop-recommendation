@@ -1,10 +1,13 @@
 # Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
+# Set environment variables
+ENV OUTPUT_DIR=/app
+
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container
+# Copy the requirements file first to leverage Docker cache
 COPY requirements.txt .
 
 # Install any needed packages specified in requirements.txt
@@ -13,12 +16,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . /app
 
+# Install system dependencies (if needed)
+RUN apt-get update && apt-get install -y build-essential
+
 # Copy model files into the container (copy only the specific files)
-COPY ./scaler_fixmodel.pkl /app/scaler_fixmodel.pkl
-COPY ./label_encoder_fixmodel.pkl /app/label_encoder_fixmodel.pkl
-COPY ./SStacked_model.pkl /app/SStacked_model.pkl
-COPY ./data/Crop_Recommendation.csv /app/data/Crop_Recommendation.csv
-COPY ./data/Crop_Recommendation.csv /app/data/BackupCrop_Recommendation.csv
+COPY pscaler_fixmodel.pkl /app/
+COPY plabel_encoder_fixmodel.pkl /app/
+COPY PStacked_model.pkl /app/
 
 # Expose the port the app runs on
 EXPOSE 8000

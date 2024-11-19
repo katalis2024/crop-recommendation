@@ -22,14 +22,14 @@ from sklearn.datasets import make_classification  # Added import for make_classi
 from sklearn.metrics import classification_report
 
 # Load the dataset
-DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\BackupCrop_Recommendation.csv'
+DATASET_PATH = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\updated_dataset.csv'
 if not os.path.exists(DATASET_PATH):
     print(f"File not found at: {DATASET_PATH}")
     sys.exit()
 crop_data = pd.read_csv(DATASET_PATH)
 
-# Prepare the dataset by removing 'rainfall'
-crop_data = crop_data.drop(['Rainfall'], axis=1)
+# # Prepare the dataset by removing 'rainfall'
+# crop_data = crop_data.drop(['Rainfall'], axis=1)
 
 y = crop_data['label'].astype(str)
 x = crop_data.drop(['label'], axis=1)
@@ -54,8 +54,8 @@ def save_pickle_object(obj, obj_name):
         pickle.dump(obj, obj_file)
 
 # Save the scaler and label encoder
-save_pickle_object(scaler, 'scaler')
-save_pickle_object(label_encoder, 'label_encoder')
+save_pickle_object(scaler, 'pscaler')
+save_pickle_object(label_encoder, 'plabel_encoder')
 
 # Data Visualization
 # ... (keep existing visualization code)
@@ -145,16 +145,16 @@ for (name, model), param_grid in zip(base_models, param_grids.values()):
    
 
     # Display confusion matrix
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
-    plt.title(f'{name} Confusion Matrix')
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.show()
+    # plt.figure(figsize=(8, 6))
+    # sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', 
+    #             xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
+    # plt.title(f'{name} Confusion Matrix')
+    # plt.xlabel('Predicted Label')
+    # plt.ylabel('True Label')
+    # plt.show()
 
 # Stacked Model
-meta_model = XGBClassifier()
+meta_model = XGBClassifier(random_state=42)
 stacked_model = StackingClassifier(
     estimators=[(name, model) for name, model in best_models.items()],
     final_estimator=meta_model,
@@ -189,23 +189,23 @@ conf_matrix_stacked = confusion_matrix(y_test, y_test_pred)
 classes = np.unique(y_test)
 
 # Menampilkan confusion matrix secara keseluruhan dalam satu heatmap
-plt.figure(figsize=(12, 10))
-sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
-            xticklabels=classes, yticklabels=classes)
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.title('Confusion Matrix for All Crops in Stacked Model')
-plt.show()
+# plt.figure(figsize=(12, 10))
+# sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+#             xticklabels=classes, yticklabels=classes)
+# plt.xlabel('Predicted Label')
+# plt.ylabel('True Label')
+# plt.title('Confusion Matrix for All Crops in Stacked Model')
+# plt.show()
 
 
 # Display confusion matrix for stacked model
-plt.figure(figsize=(8, 6))
-sns.heatmap(conf_matrix_stacked, annot=True, fmt='d', cmap='Blues', 
-            xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
-plt.title('Stacked Model Confusion Matrix')
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.show()
+# plt.figure(figsize=(8, 6))
+# sns.heatmap(conf_matrix_stacked, annot=True, fmt='d', cmap='Blues', 
+#             xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
+# plt.title('Stacked Model Confusion Matrix')
+# plt.xlabel('Predicted Label')
+# plt.ylabel('True Label')
+# plt.show()
 
 model_metrics['Model'].append('Stacked Model')
 model_metrics['Accuracy'].append(accuracy_stacked)
@@ -223,52 +223,52 @@ print(f"ROC AUC: {roc_auc_stacked:.4f}")
 # Convert model metrics dictionary to DataFrame for easier plotting
 metrics_df = pd.DataFrame(model_metrics)
 
-# Plotting the metrics
-metrics_df.set_index('Model').plot(kind='bar', figsize=(14, 8))
-plt.title('Evaluation Metrics for Different Models')
-plt.ylabel('Scores')
-plt.ylim(0, 1)  # Ensure y-axis is between 0 and 1
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.legend(loc='lower right')
-plt.show()
+# # Plotting the metrics
+# metrics_df.set_index('Model').plot(kind='bar', figsize=(14, 8))
+# plt.title('Evaluation Metrics for Different Models')
+# plt.ylabel('Scores')
+# plt.ylim(0, 1)  # Ensure y-axis is between 0 and 1
+# plt.xticks(rotation=45)
+# plt.tight_layout()
+# plt.legend(loc='lower right')
+# plt.show()
 
 # Function to plot confusion matrices for multiple classifiers
-def plot_confusion_matrix_comparison(conf_matrices, classifiers, title="Confusion Matrices Comparison"):
-    fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(20, 10))  # Adjust based on the number of classifiers
-    axes = axes.flatten()  # Flatten to iterate over axes
+# def plot_confusion_matrix_comparison(conf_matrices, classifiers, title="Confusion Matrices Comparison"):
+#     fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(20, 10))  # Adjust based on the number of classifiers
+#     axes = axes.flatten()  # Flatten to iterate over axes
     
-    for i, (conf_matrix, classifier) in enumerate(zip(conf_matrices, classifiers)):
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False, ax=axes[i])
-        axes[i].set_title(f'{classifier} Confusion Matrix')
-        axes[i].set_xlabel('Predicted Label')
-        axes[i].set_ylabel('True Label')
+#     for i, (conf_matrix, classifier) in enumerate(zip(conf_matrices, classifiers)):
+#         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False, ax=axes[i])
+#         axes[i].set_title(f'{classifier} Confusion Matrix')
+#         axes[i].set_xlabel('Predicted Label')
+#         axes[i].set_ylabel('True Label')
     
     # Remove extra subplots if any
-    for j in range(i+1, len(axes)):
-        fig.delaxes(axes[j])
+    # for j in range(i+1, len(axes)):
+    #     fig.delaxes(axes[j])
     
-    plt.suptitle(title, fontsize=20)
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.9)
-    plt.show()
+    # plt.suptitle(title, fontsize=20)
+    # plt.tight_layout()
+    # plt.subplots_adjust(top=0.9)
+    # plt.show()
 
 # Plot the confusion matrices for comparison
 classifiers = [name for name, _ in base_models] + ['Stacked Model']
-plot_confusion_matrix_comparison(conf_matrices, model_metrics['Model'])
+# plot_confusion_matrix_comparison(conf_matrices, model_metrics['Model'])
 
 # Plotting Accuracy Score Comparison for Algorithms
 algorithms = [name for name, _ in base_models] + ['Stacked Model']
 accuracies = [metrics_df.loc[metrics_df['Model'] == alg, 'Accuracy'].values[0] for alg in algorithms]
 
-plt.figure(figsize=(10, 6))
-sns.barplot(x=algorithms, y=accuracies, palette="viridis")
-plt.title('Accuracy Score Comparison for Crop Recommendation Algorithms')
-plt.ylabel('Accuracy Score')
-plt.ylim(0, 1)  # Ensure y-axis is between 0 and 1
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(10, 6))
+# sns.barplot(x=algorithms, y=accuracies, palette="viridis")
+# plt.title('Accuracy Score Comparison for Crop Recommendation Algorithms')
+# plt.ylabel('Accuracy Score')
+# plt.ylim(0, 1)  # Ensure y-axis is between 0 and 1
+# plt.xticks(rotation=45)
+# plt.tight_layout()
+# plt.show()
 
 # Learning Curves
 # Generate synthetic data to show learning curves
@@ -277,10 +277,10 @@ X_curve, y_curve = make_classification(n_samples=1000, n_features=6, n_informati
                                        n_clusters_per_class=2, random_state=42)
 
 def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=None, train_sizes=np.linspace(0.1, 1.0, 5)):
-    plt.figure()
-    plt.title(title)
-    plt.xlabel("Training examples")
-    plt.ylabel("Score")
+    # plt.figure()
+    # plt.title(title)
+    # plt.xlabel("Training examples")
+    # plt.ylabel("Score")
 
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, 
                                                             train_sizes=train_sizes, scoring='accuracy')
@@ -288,13 +288,13 @@ def plot_learning_curve(estimator, title, X, y, cv=None, n_jobs=None, train_size
     train_scores_mean = np.mean(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
 
-    plt.grid()
-    plt.fill_between(train_sizes, train_scores_mean, test_scores_mean, alpha=0.1, color="r")
-    plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
-    plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+    # plt.grid()
+    # plt.fill_between(train_sizes, train_scores_mean, test_scores_mean, alpha=0.1, color="r")
+    # plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
+    # plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
 
-    plt.legend(loc="best")
-    return plt
+    # plt.legend(loc="best")
+    # return plt
 
 # Plot learning curves for base models and stacked model
 # for name, model in best_models.items():
@@ -318,40 +318,21 @@ def predict_new_sample(x_new, model):
     pred_model = model.predict(x_new_scaled)
     print(f"Predicted Crop: {label_encoder.inverse_transform(pred_model)}")
 
-save_model(stacked_model, 'SStacked')
+save_model(stacked_model, 'PStacked')
 
 # List input untuk kadar N, P, K, kelembapan, suhu, dan pH
 user_inputs = [
-    [109.43, 47.23, 19.45, 23.34, 76.23, 6.83],  # Rice
-    [18.39, 135.12, 193.45, 23.31, 93.02, 5.83], # Apple
-    [41.23, 64.53, 74.99, 20.43, 13.56, 7.37],   # Chickpea
-    [100.12, 41.88, 20.21, 22.76, 70.91, 6.71],  # Rice
-    [17.97, 140.34, 200.23, 22.13, 89.47, 5.88], # Apple
-    [104.52, 45.14, 18.21, 24.89, 73.68, 6.79],  # Rice
-    [42.67, 61.53, 73.55, 20.01, 13.75, 7.31],   # Chickpea
-    [19.63, 138.88, 201.12, 23.87, 95.13, 5.96], # Apple
-    [110.27, 43.12, 18.73, 24.59, 76.13, 6.88],  # Rice
-    [38.78, 60.21, 70.34, 19.07, 12.98, 7.27],   # Chickpea
-    [20.56, 130.87, 194.55, 22.65, 88.79, 5.81], # Apple
-    [105.24, 39.87, 17.32, 22.15, 77.93, 6.85],  # Rice
-    [39.66, 60.45, 72.11, 18.72, 14.81, 7.36],   # Chickpea
-    [19.80, 134.67, 199.95, 22.59, 92.27, 5.91], # Apple
-    [108.44, 40.92, 17.94, 24.12, 74.56, 6.82],  # Rice
-    [21.11, 137.64, 205.43, 25.89, 98.23, 6.02], # Apple
-    [40.32, 63.11, 75.23, 18.45, 14.23, 7.29],   # Chickpea
-    [95.87, 42.67, 19.89, 21.59, 78.99, 6.79],   # Rice
-    [19.65, 128.34, 187.55, 20.44, 85.28, 5.90], # Apple
-    [37.45, 59.99, 71.12, 17.89, 15.01, 7.20],   # Chickpea
-    [98.77, 39.95, 16.98, 22.78, 71.99, 6.66],   # Rice
-    [43.21, 63.89, 76.45, 19.33, 16.23, 7.25],   # Chickpea
-    [22.37, 132.21, 198.67, 24.67, 90.56, 5.89], # Apple
-    [106.98, 44.71, 18.58, 23.94, 72.84, 6.75],  # Rice
-    [20.02, 138.75, 202.14, 24.44, 95.78, 5.97], # Apple
-    [38.43, 58.21, 69.82, 17.35, 12.56, 7.28],   # Chickpea
-    [115.24, 48.56, 20.64, 26.21, 80.12, 6.93],  # Rice
-    [18.47, 132.89, 195.32, 23.98, 90.33, 5.85], # Apple
-    [41.76, 62.13, 74.23, 20.11, 15.72, 7.32],   # Chickpea
+    [63, 35, 16, 22.03, 65.36, 6.27],  # Maize
+    [79, 45, 20, 23.81, 59.25, 5.72],  # Maize
+    [40, 72, 77, 17.02, 16.99, 7.49],  # Chickpea
+    [23, 72, 84, 19.02, 17.13, 6.92],  # Chickpea
+    [39, 58, 85, 17.89, 15.41, 6.00],  # Chickpea
+    [1, 62, 23, 15.44, 18.37, 5.61],   # Kidneybeans
+    [16, 55, 19, 19.54, 47.19, 6.41],  # Pigeonpeas
+    [9, 51, 19, 27.04, 49.33, 5.49],   # Mothbeans
+    [28, 48, 15, 25.16, 55.25, 9.25],  # Mothbeans
 ]
+
 
 
 # Function to take user input for multiple new samples and return predictions

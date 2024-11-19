@@ -14,7 +14,7 @@ OUTPUT_DIR = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app'
 
 # Load datasets
 try:
-    parameter_data = pd.read_csv(PARAMETER_DATASET_PATH)
+    parameter_data = r'C:\Users\ACER\OneDrive - mail.unnes.ac.id\katalis\app\data\Crop_Recommendation.csv'
 except FileNotFoundError:
     raise HTTPException(status_code=500, detail="Parameter dataset file not found.")
 except pd.errors.EmptyDataError:
@@ -47,7 +47,7 @@ class CropInput(BaseModel):
     ph: float
 
 class ParameterDetail(BaseModel):
-    class_: str
+    class_: int
     colour: str
     value: float
     deviation: float
@@ -115,8 +115,8 @@ def predict_crop(input_data: CropInput):
 
         # Response assembly
         return CropPredictionResponse(
-            model1_output=predicted_crop,
-            model2_recommendation=f"Tanaman yang disarankan: {predicted_crop}",
+            model1_output=str(predicted_crop),
+            model2_recommendation=f"Tanaman yang disarankan: str{predicted_crop}",
             N=ParameterDetail(class_=N_class, colour=N_colour, value=input_data.N, deviation=N_deviation, satuan="mg", action="adjust" if N_class != "adequate" else "maintain"),
             P=ParameterDetail(class_=P_class, colour=P_colour, value=input_data.P, deviation=P_deviation, satuan="mg", action="adjust" if P_class != "adequate" else "maintain"),
             K=ParameterDetail(class_=K_class, colour=K_colour, value=input_data.K, deviation=K_deviation, satuan="mg", action="adjust" if K_class != "adequate" else "maintain"),
@@ -126,4 +126,4 @@ def predict_crop(input_data: CropInput):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=int(e))
